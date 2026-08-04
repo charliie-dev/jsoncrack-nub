@@ -44,6 +44,7 @@
     "reaflow": "5.4.1",
     "shiki": "^4.0.2",
     "styled-components": "^6.3.11",
+    "use-sync-external-store": "^1.6.0",
     "zustand": "^5.0.12"
   },
   "devDependencies": {
@@ -63,6 +64,5 @@
     "ts-node": "^10.9.2",
     "typescript": "5.9.3",
     "typescript-eslint": "^8.57.1"
-  },
-  "packageManager": "pnpm@10.20.0"
+  }
 }

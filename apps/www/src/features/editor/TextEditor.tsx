@@ -30,8 +30,7 @@ const TextEditor = () => {
   const theme = useConfig(state => (state.darkmodeEnabled ? "vs-dark" : "light"));
   const fileType = useFile(state => state.format);
   const jsonDefaults = (monaco?.languages as any)?.json?.jsonDefaults as
-    | { setDiagnosticsOptions: (options: unknown) => void }
-    | undefined;
+    { setDiagnosticsOptions: (options: unknown) => void } | undefined;
 
   React.useEffect(() => {
     if (!jsonDefaults) return;

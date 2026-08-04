@@ -23,8 +23,8 @@ This workflow prevents duplicate work and ensures your contribution aligns with 
 ## Quick Setup
 
 ### Prerequisites
-- Node.js 18+
-- pnpm (or npm/yarn)
+- [mise](https://mise.jdx.dev/) (recommended) — installs the pinned nub and Node versions
+- Or [nub](https://nubjs.com/) >= 0.6 and Node.js 26.5.1 installed manually
 
 ### Tech Stack
 JSON Crack uses:
@@ -40,10 +40,10 @@ git clone https://github.com/AykutSarac/jsoncrack.com.git
 cd jsoncrack.com
 
 # Install dependencies
-pnpm install
+nub install
 
 # Run the dev server
-pnpm dev
+nub run dev
 ```
 
 The app will be available at `http://localhost:3000`
@@ -60,7 +60,7 @@ Before submitting, make sure your PR includes:
 3. **Evidence of working changes** — One or both:
    - **Screenshot** — Show the UI before/after
    - **Video** — Screen recording of the feature in action
-4. **Test it locally** — Run `pnpm dev` and verify it works
+4. **Test it locally** — Run `nub run dev` and verify it works
 5. **Follow code style** — Use [Google TypeScript Style Guide](https://google.github.io/styleguide/tsguide.html)
 
 ### Creating Your Branch
