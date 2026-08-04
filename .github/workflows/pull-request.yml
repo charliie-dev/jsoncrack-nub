@@ -2,57 +2,64 @@ name: Verify Pull Request
 
 on:
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
-  cache-and-install:
+  lint:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Install Node.js
-        uses: actions/setup-node@v6
+      - name: Set up nub
+        uses: nubjs/setup-nub@v0
         with:
-          node-version: "24.10.0"
-
-      - uses: pnpm/action-setup@v4
-        name: Install pnpm
-        with:
-          version: 10.20.0
-          run_install: false
-
-      - name: Get pnpm store directory
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - uses: actions/cache@v5
-        name: Setup pnpm cache
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-
-      - name: Restore Turbo and Next.js cache
-        uses: actions/cache@v5
-        with:
-          path: |
-            .turbo
-            apps/www/.next/cache
-          key: ${{ runner.os }}-turbo-next-${{ hashFiles('pnpm-lock.yaml', 'turbo.json') }}-${{ hashFiles('apps/www/**.[jt]s', 'apps/www/**.[jt]sx', 'packages/**.[jt]s', 'packages/**.[jt]sx') }}
-          restore-keys: |
-            ${{ runner.os }}-turbo-next-${{ hashFiles('pnpm-lock.yaml', 'turbo.json') }}-
+          cache: true
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: nub ci
 
       - name: Lint
-        run: pnpm turbo run lint
+        run: nub run lint
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up nub
+        uses: nubjs/setup-nub@v0
+        with:
+          cache: true
+
+      - name: Install dependencies
+        run: nub ci
+
+      - name: Test
+        run: nub run test
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up nub
+        uses: nubjs/setup-nub@v0
+        with:
+          cache: true
+
+      - name: Restore Next.js cache
+        uses: actions/cache@v5
+        with:
+          path: apps/www/.next/cache
+          key: ${{ runner.os }}-next-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('apps/www/**.[jt]s', 'apps/www/**.[jt]sx', 'packages/**.[jt]s', 'packages/**.[jt]sx') }}
+          restore-keys: |
+            ${{ runner.os }}-next-${{ hashFiles('pnpm-lock.yaml') }}-
+
+      - name: Install dependencies
+        run: nub ci
 
       - name: Build
-        run: pnpm turbo run build
-
-        
+        run: nub run build
