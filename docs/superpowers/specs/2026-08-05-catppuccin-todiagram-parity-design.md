@@ -117,14 +117,15 @@ Mantine 的 `colors` 需要 10 階陣列，以 Catppuccin accent 為中心生成
 `mauve`。`Toaster` 的 `toastOptions.style` 目前硬編 `#4D4D4D` 與 `#B9BBBE`，改成 `surface0` 與
 `text`。
 
-**七處色碼比對必須一起改掉**
+**八處色碼比對必須一起改掉**
 
-`theme.BACKGROUND_SECONDARY === "#f2f3f5"` 這個判斷式出現七次，換色盤後全部會選錯值：
+`theme.BACKGROUND_SECONDARY === "#f2f3f5"` 這個判斷式出現八次，換色盤後全部會選錯值：
 
 - `GraphView/index.tsx:33`，節點的 drop-shadow
 - `GraphView/Toolbar/index.tsx` 的 `glassSurface` 共五處：背景（28 附近）、邊框（34）、inset 高光
   （39）、近距陰影（44）、遠距陰影（47）
 - `GraphView/Toolbar/index.tsx:78`，`StyledToolbar` 的 divider 邊框
+- `BottomBar.tsx:71`，pane bar 按鈕的 hover 背景
 
 修法是在 theme 物件加一個 `IS_DARK: boolean`，七處直接讀它。不逐處改成 `$dark` prop：五處在共用的
 `glassSurface` css helper 裡，加 prop 就得讓每個使用者往下傳。放進 theme 之後也不可能再漂移。
@@ -159,18 +160,22 @@ header 其實可以吃 CSS 色彩函式，這點與最初的判斷不同。改�
 
 ### 3. UI 重組
 
-**新元件 `apps/www/src/features/editor/PaneBar.tsx`**
+**改造既有的 `BottomBar.tsx`，改名為 `PaneBar.tsx`**
 
-掛在 `editor.tsx:166` 的 `StyledTextEditor` 內、`TextEditor` 上方。三塊內容：
+這裡要修正一個原本的誤判：PaneBar 不是新元件。`editor.tsx:167` 把 `BottomBar` 放在 `TextEditor`
+之前，而 `StyledTextEditor`（`editor.tsx:60`）是 `flex-direction: column`，所以它顯示在編輯器面板的
+**頂部**，還帶著 `border-bottom`。名字是歷史遺留，位置正是 PaneBar 要的位置。
 
-| 內容 | 現在在哪 | 動作 |
+它已經有兩塊要的東西，所以實際工作比原本估的小：
+
+| 內容 | 現在的狀態 | 動作 |
 |---|---|---|
-| 格式下拉 `JSON ⌄` | `BottomBar.tsx:161` | 搬到 PaneBar，`setFormat` 邏輯不動 |
-| `{ } JSON Schema` 入口 | `Toolbar/ToolsMenu.tsx` 選單內 | 提到 PaneBar 當常駐按鈕，仍開 `SchemaModal` |
-| 驗證狀態燈 | 不存在 | 新做。綠勾代表通過，紅叉加錯誤數，另有「驗證不可用」的中性狀態 |
+| 格式下拉 `JSON ⌄` | `BottomBar.tsx:151-171` 已在這條 bar 的右側 | 不搬，原地保留 |
+| Valid / Invalid 狀態 | `BottomBar.tsx:111-132` 已有兩態 | 擴充成四態，加錯誤數 |
+| `{ } JSON Schema` 入口 | 藏在 `Toolbar/ToolsMenu.tsx:41-49` 選單內 | 提到這條 bar 當常駐按鈕，並從選單移除，不留兩個入口 |
 
-`BottomBar.tsx:112` 現在會顯示 `useFile.error`，這部分移到 PaneBar。BottomBar 保留節點數與其餘
-資訊，同一件事不在兩處顯示。
+狀態燈的四態依優先序是 parse 錯誤、schema 不可用、Monaco marker、schema 違規、通過。`error` 併入
+狀態燈，不另外顯示。`Popover` 的 position 要從 `top` 改成 `bottom`，因為這條 bar 在面板頂部。
 
 **狀態燈的錯誤數來源**：`TextEditor.tsx:98` 現在是 `onValidate={errors => setError(errors[0]?.message
 || "")}`，只留第一條訊息、丟掉數量。改成同時存下 marker 數與完整清單，`useFile` 新增對應欄位。JSON
@@ -228,7 +233,8 @@ schema 必須照這個轉換規則寫：
 - 單一元素是 object，重複元素才是 array。`<items><item>a</item></items>` 轉出來 `item` 是字串，
   兩個 `<item>` 才變陣列。要同時涵蓋得寫 `oneOf`
 
-現成的 XSD 或對 XML 結構的直覺都套不上去。這條規則要寫進 `SchemaModal` 的說明文字與 `docs.tsx`。
+現成的 XSD 或對 XML 結構的直覺都套不上去。這條規則寫進 `SchemaModal` 的說明文字，那是使用者貼
+schema 的地方。不寫進 `docs.tsx`，同一段話放兩處只會多一份會過期的副本。
 
 CSV 乾淨得多：`csv2json` 產出 array of objects，schema 形狀是
 `{ type: "array", items: { type: "object", properties: {...} } }`。
