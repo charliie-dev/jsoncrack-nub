@@ -43,9 +43,6 @@ export const Footer = () => {
             <Text fz="sm" c="white">
               Resources
             </Text>
-            <Anchor component={Link} prefetch={false} fz="sm" c="gray.5" href="/#faq">
-              FAQ
-            </Anchor>
             <Anchor component={Link} prefetch={false} fz="sm" c="gray.5" href="/docs">
               Docs
             </Anchor>
