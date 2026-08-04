@@ -119,9 +119,9 @@ JSON Crack officially launched as v1.0 on the 17th of February 2022 and we've co
 ### Scripts
 
 ```sh
-nub run dev        # Start the dev server
+nub run dev        # Start the dev server on port 3000
 nub run build      # Build the static export
-nub run start      # Serve the production build
+nub run start      # Serve the built export on port 3000
 nub run lint       # Typecheck, lint, and check formatting
 nub run lint:fix   # Fix lint and formatting issues
 nub run test       # Run the test suite
@@ -129,52 +129,72 @@ nub run analyze    # Build with the bundle analyzer
 nub run clean      # Remove build outputs
 ```
 
-With mise installed, `mise run <task>` wraps each of these, plus the `dc:*` Docker tasks
-below.
+With mise installed, `mise run <task>` wraps each of these and adds:
+
+```sh
+mise run typecheck           # tsc only, skipping eslint and prettier
+mise run audit               # Fail on fixable critical/high advisories
+mise run audit:all           # Show every advisory, including unfixable ones
+mise run bundle-size         # Raw and gzipped size of the export
+mise run deptree             # Dependency tree
+PKG=postcss mise run deptree # Why a specific package is installed
+DEEP=1 mise run clean        # Also remove node_modules
+```
+
+Plus the `dc:*` Docker tasks below.
 
 ### Environment variables
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `NEXT_PUBLIC_NODE_LIMIT` | `10000` | Maximum number of nodes rendered in the graph |
+| `NEXT_PUBLIC_NODE_LIMIT` | `1200` | Node count above which the graph shows a "not supported" panel instead of laying out. Raising it removes the only guard against a huge document hanging the tab — measure first |
 | `NEXT_TELEMETRY_DISABLED` | `1` | Disable Next.js telemetry |
-| `NEXT_PUBLIC_DISABLE_EXTERNAL_MODE` | `true` | Disable the external mode dialog |
+| `NEXT_PUBLIC_DISABLE_EXTERNAL_MODE` | `true` | Hides the external-mode dialog, the "Upgrade to Pro Editor" toolbar link and the "Choose your editor" modal. Set to `false` to get all three back |
 | `NEXT_PUBLIC_GA_MEASUREMENT_ID` | _(empty)_ | Google Analytics measurement ID (optional) |
-| `SITE_URL` | `https://jsoncrack.com` | Base URL used for sitemap generation (build-time) |
+| `NEXT_PUBLIC_SITE_URL` | `https://jsoncrack.com` | Public base URL. Drives the sitemap, robots.txt, and every page's canonical and Open Graph URL |
 | `PORT` | `8080` | Host port published by Docker Compose |
+| `TAG` | `latest` | Image tag `docker compose pull` fetches |
 
-App variables live in `apps/www/.env`; `PORT` and `SITE_URL` are read from the root `.env`
-by Docker Compose.
+App variables live in `apps/www/.env` (put local overrides in the gitignored
+`apps/www/.env.local`). `PORT`, `TAG` and `NEXT_PUBLIC_SITE_URL` are read from the root
+`.env` by Docker Compose.
 
 ### Docker
 
-The root `compose.yml` builds the image from source and serves the static export through
-nginx:
+Pulling the published image is the quickest path and needs no registry credentials:
 
 ```sh
 cp .env.example .env
-docker compose up -d --build
+docker compose pull
+docker compose up -d
 
 # The editor is available at http://localhost:8080
+```
+
+Building from source instead requires a `docker login dhi.io` first, because the
+Dockerfile's production stage pulls [Docker Hardened Images](https://docs.docker.com/dhi/):
+
+```sh
+docker login dhi.io
+docker compose up -d --build
 ```
 
 To run on a different port:
 
 ```sh
-PORT=3000 docker compose up -d --build
+PORT=3000 docker compose up -d
 ```
 
-To set the sitemap base URL for a self-hosted instance:
+To point a self-hosted instance at its own origin, which sets the canonical URLs, Open Graph
+URLs, sitemap and robots.txt together:
 
 ```sh
-SITE_URL=https://json.example.com docker compose up -d --build
+NEXT_PUBLIC_SITE_URL=https://json.example.com docker compose up -d --build
 ```
 
-Pre-built multi-arch images are published to GHCR on each release:
-
-```sh
-docker pull ghcr.io/charliie-dev/jsoncrack-nub:latest
-```
+The container runs unprivileged as uid 65532 with a read-only root filesystem, every Linux
+capability dropped, `no-new-privileges`, and size-capped tmpfs mounts. Request logs go to
+the container's stdout, so `docker compose logs -f` shows them.
 
 With mise:
 
