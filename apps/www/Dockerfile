@@ -1,29 +1,28 @@
 # syntax=docker/dockerfile:1.6
 
-FROM node:24-alpine AS base
-RUN apk add --no-cache libc6-compat && npm install -g pnpm@10.20.0
-WORKDIR /app
+FROM --platform=$BUILDPLATFORM ghcr.io/nubjs/nub:0.6.0-alpine AS base
 
-FROM base AS pruner
-COPY . .
-RUN pnpm dlx turbo@2.8.20 prune www --docker
+# Stage 1: Install dependencies
+FROM base AS deps
+COPY --chown=node:node .node-version package.json pnpm-lock.yaml ./
+COPY --chown=node:node apps/www/package.json ./apps/www/package.json
+COPY --chown=node:node packages/jsoncrack-react/package.json ./packages/jsoncrack-react/package.json
+RUN nub ci
 
-FROM base AS installer
-COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
-COPY --from=pruner /app/out/pnpm-workspace.yaml ./pnpm-workspace.yaml
-COPY --from=pruner /app/out/json/ .
+# Stage 2: Build the static export
+FROM base AS builder
+ARG SITE_URL=https://jsoncrack.com
+ENV SITE_URL=$SITE_URL
+COPY --from=deps --chown=node:node /app/node_modules ./node_modules
+COPY --from=deps --chown=node:node /app/apps/www/node_modules ./apps/www/node_modules
+COPY --from=deps --chown=node:node /app/packages/jsoncrack-react/node_modules ./packages/jsoncrack-react/node_modules
+COPY --chown=node:node . .
+RUN nub run build
 
-ENV PNPM_SKIP_LIFECYCLE_SCRIPTS=1
-RUN --mount=type=cache,target=/root/.pnpm-store \
-    pnpm config set store-dir /root/.pnpm-store && \
-    pnpm install --frozen-lockfile --ignore-scripts
-
-COPY --from=pruner /app/out/full/ .
-RUN pnpm turbo run build
-
-FROM nginxinc/nginx-unprivileged:stable AS production
-WORKDIR /app
-COPY --from=installer /app/apps/www/out /app
+# Stage 3: Production image
+FROM dhi.io/nginx:1.31.3-alpine AS production
+COPY --from=builder --chown=65532:65532 /app/apps/www/out /app
 COPY apps/www/nginx.conf /etc/nginx/conf.d/default.conf
-
 EXPOSE 8080
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD wget -qO /dev/null http://localhost:8080/ || exit 1
