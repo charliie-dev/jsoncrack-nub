@@ -64,6 +64,7 @@ shopt -s nullglob
 to_remove=(
   apps/www/.next
   apps/www/out
+  apps/www/public/monaco
   apps/www/public/robots.txt
   apps/www/public/sitemap.xml
   apps/www/public/sitemap-0.xml
