@@ -11,13 +11,18 @@ RUN nub ci
 
 # Stage 2: Build the static export
 FROM base AS builder
-ARG NEXT_PUBLIC_SITE_URL=https://jsoncrack.com
-ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
+# Deliberately named SITE_URL, not NEXT_PUBLIC_SITE_URL, and exported only when it
+# actually carries a value. An ARG of the app's own variable name lands in the build
+# environment, and @next/env skips any key already present in process.env — so a
+# defaulted or empty ARG would silently mask whatever apps/www/.env sets. Verified:
+# an ARG declared with no default and not passed is *unset*, but one passed as empty
+# is present-and-empty, which is exactly the masking case. Hence the guard.
+ARG SITE_URL
 COPY --from=deps --chown=node:node /app/node_modules ./node_modules
 COPY --from=deps --chown=node:node /app/apps/www/node_modules ./apps/www/node_modules
 COPY --from=deps --chown=node:node /app/packages/jsoncrack-react/node_modules ./packages/jsoncrack-react/node_modules
 COPY --chown=node:node . .
-RUN nub run build
+RUN if [ -n "${SITE_URL:-}" ]; then export NEXT_PUBLIC_SITE_URL="$SITE_URL"; fi; nub run build
 
 # Stage 3: Production image
 FROM dhi.io/nginx:1.31.3-alpine AS production

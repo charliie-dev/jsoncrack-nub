@@ -1,7 +1,8 @@
+import React from "react";
 import type { AppProps } from "next/app";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { createTheme, MantineProvider } from "@mantine/core";
+import { createTheme, MantineProvider, useMantineColorScheme } from "@mantine/core";
 import "@mantine/core/styles.css";
 import { CodeHighlightAdapterProvider, createShikiAdapter } from "@mantine/code-highlight";
 import "@mantine/code-highlight/styles.css";
@@ -14,7 +15,30 @@ import { Toaster } from "react-hot-toast";
 import GlobalStyle from "../constants/globalStyle";
 import { SEO } from "../constants/seo";
 import { lightTheme } from "../constants/theme";
-import { smartColorSchemeManager } from "../lib/utils/mantineColorScheme";
+import { isDynamicColorSchemePath, smartColorSchemeManager } from "../lib/utils/mantineColorScheme";
+
+const DYNAMIC_COLOR_SCHEME_PATHS = ["/", "/editor", "/widget"];
+
+/**
+ * Forces the light scheme when navigating onto a page that expects it.
+ *
+ * The colour-scheme manager decides light-vs-dynamic from the pathname, but Mantine
+ * only consults it while mounting, so a client-side navigation from a dynamic route to
+ * a static one left the persisted dark scheme in place — near-white text on
+ * PageLayout's hard-coded white background. That was already reachable from /editor
+ * before the site root became the editor; this fixes both entry points.
+ */
+const ColorSchemeSync = ({ pathname }: { pathname: string }) => {
+  const { setColorScheme } = useMantineColorScheme();
+
+  React.useEffect(() => {
+    if (!isDynamicColorSchemePath(pathname, DYNAMIC_COLOR_SCHEME_PATHS)) {
+      setColorScheme("light");
+    }
+  }, [pathname, setColorScheme]);
+
+  return null;
+};
 
 async function loadShiki() {
   const { createHighlighter } = await import("shiki");
@@ -70,16 +94,14 @@ const theme = createTheme({
 function JSONCrackApp({ Component, pageProps }: AppProps) {
   const { pathname } = useRouter();
 
-  // Create a single smart manager that handles pathname logic internally
+  // Create a single smart manager that handles pathname logic internally.
+  // "/" is in the dynamic set because this fork serves the editor at the site root;
+  // without it the manager forces light on the homepage while the editor paints dark,
+  // flashing on every load, and `set()` silently drops theme toggles made there.
   const colorSchemeManager = smartColorSchemeManager({
     key: "editor-color-scheme",
     getPathname: () => pathname,
-    // Editor and widget paths use dynamic theme. "/" is here because this fork
-    // serves the editor at the site root; without it the manager forces light on
-    // the homepage while the editor paints dark, flashing on every load, and
-    // `set()` silently drops theme toggles made there. The match is exact for
-    // "/" — the prefix test compares against `${path}/`, i.e. "//".
-    dynamicPaths: ["/", "/editor", "/widget"],
+    dynamicPaths: DYNAMIC_COLOR_SCHEME_PATHS,
   });
 
   return (
@@ -98,6 +120,7 @@ function JSONCrackApp({ Component, pageProps }: AppProps) {
         defaultColorScheme="light"
         theme={theme}
       >
+        <ColorSchemeSync pathname={pathname} />
         <CodeHighlightAdapterProvider adapter={shikiAdapter}>
           <ThemeProvider theme={lightTheme}>
             <Toaster

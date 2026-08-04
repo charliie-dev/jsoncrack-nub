@@ -77,6 +77,13 @@ jobs:
           file: apps/www/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
+          # Without this the published image bakes in whatever apps/www/.env holds and
+          # the operator's root .env is a no-op on the `docker compose pull` path — a
+          # static export inlines the canonical at build time. Set the
+          # NEXT_PUBLIC_SITE_URL repository variable to the origin this image serves
+          # from; empty is safe and falls back to apps/www/.env.
+          build-args: |
+            SITE_URL=${{ vars.NEXT_PUBLIC_SITE_URL }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha

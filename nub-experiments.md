@@ -124,6 +124,47 @@ Regenerating moved 193 packages to new versions. Two consequences worth knowing:
   arrives via `@napi-rs/wasm-runtime`, a WASM fallback for the eslint resolver, and does
   not affect lint or build output.
 
+## Monaco was fetched from a CDN at a version nothing maintained
+
+Unrelated to nub, but it undercut the whole self-hosting story.
+
+`@monaco-editor/react` deliberately does not bundle Monaco — `min/vs` is 24 MB — and
+fetches it at runtime through an AMD loader. This app pointed that loader at
+`https://unpkg.com/monaco-editor@0.55.1/min/vs`, and the URL was baked into the exported
+bundle, so every visitor's browser pulled the editor from a public CDN rather than from the
+deployment serving the page. On an intranet the page rendered, the toolbar appeared, and
+the editor pane showed its loading overlay forever.
+
+The version was the second half of the problem. `0.55.1` was a bare string in a
+`loader.config` call: no lockfile, no `nub update`, no renovate ever touched it. Meanwhile
+the installed `monaco-editor` had reached 0.56.0, so the types the bundle compiled against
+and the code the browser executed were different releases. Both are already the newest
+published versions, so this was drift in the hard-coded copy alone.
+
+`apps/www/scripts/copy-monaco.mjs` now copies `min/vs` into `public/monaco/vs` before dev
+and build, and the loader points at `/monaco/vs`. The version comes from the resolved
+package, so it tracks the lockfile automatically.
+
+Two things worth knowing if you touch that script:
+
+- **It filters with a deny list, not an allow list.** Monaco's filenames carry content
+  hashes (`editor-KLE6jdfb.js`), so an allow list silently loses files whenever a hash
+  changes and the editor breaks in the browser with no build error. A deny list fails the
+  other way: an unrecognised new file gets copied, costing a little size and nothing else.
+  Dropping the TypeScript language service and worker, the CSS and HTML services, and the
+  UI translations takes 24 MB down to 5.8 MB — this app only ever opens JSON, YAML, XML and
+  CSV, and only JSON needs a rich language service.
+- **`require.resolve` does not work on this package.** monaco-editor's exports map rewrites
+  every subpath into `esm/vs/`, so both `monaco-editor/package.json` and
+  `monaco-editor/min/vs/loader.js` resolve to paths that do not exist. `min/vs` is real on
+  disk but unreachable through the map, so the script walks `node_modules` upward instead.
+
+Verified on a Docker network created with `--internal`, which has no egress at all
+(confirmed by a container in it failing to resolve unpkg.com): `/`,
+`/monaco/vs/loader.js`, `/monaco/vs/editor/editor.main.js` and the matching CSS all return
+200, and the JSON language service, its worker, and the YAML and XML highlighters all
+survived the trim. The image grows from 43.3 MB to 51.2 MB.
+
 ## next-sitemap wrote to the wrong directory, one build behind
 
 Unrelated to nub, but found while verifying that `SITE_URL` reaches the generated sitemap.

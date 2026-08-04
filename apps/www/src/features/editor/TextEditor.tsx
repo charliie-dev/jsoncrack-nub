@@ -5,9 +5,19 @@ import Editor, { type EditorProps, loader, type OnMount, useMonaco } from "@mona
 import useConfig from "../../store/useConfig";
 import useFile from "../../store/useFile";
 
+// Served from this deployment, not a CDN. Monaco is 24 MB, so @monaco-editor/react
+// fetches it at runtime rather than bundling it; the assets are copied into
+// public/monaco/vs by apps/www/scripts/copy-monaco.mjs, which runs before dev and build.
+//
+// This used to point at `https://unpkg.com/monaco-editor@0.55.1/min/vs`, which made the
+// editor — the site root in this fork — depend on public CDN egress, so a self-hosted
+// instance behind a firewall showed a loading overlay forever. The version was also a
+// bare string no tool maintained: it had drifted to 0.55.1 while the installed package
+// was 0.56.0. The copy script resolves the package, so the version now tracks the
+// lockfile.
 loader.config({
   paths: {
-    vs: "https://unpkg.com/monaco-editor@0.55.1/min/vs",
+    vs: "/monaco/vs",
   },
 });
 
