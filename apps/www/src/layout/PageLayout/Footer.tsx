@@ -22,14 +22,6 @@ export const Footer = () => {
               Product
             </Text>
             <Anchor
-              fz="sm"
-              c="gray.5"
-              href="https://marketplace.visualstudio.com/items?itemName=AykutSarac.jsoncrack-vscode"
-              rel="noopener"
-            >
-              VS Code
-            </Anchor>
-            <Anchor
               href="https://github.com/AykutSarac/jsoncrack.com"
               fz="sm"
               c="gray.5"

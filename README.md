@@ -19,10 +19,6 @@
     <a href="https://jsoncrack.com">Website</a>
     ·
     <a href="https://github.com/AykutSarac/jsoncrack.com/issues">Issues</a>
-    ·
-    <a href="https://marketplace.visualstudio.com/items?itemName=AykutSarac.jsoncrack-vscode">VS Code</a>
-    ·
-    <a href="https://chromewebstore.google.com/detail/hbaeglefdflnhodchjiaphmheaojikhh">Chrome</a>
   </p>
 </p>
 
@@ -59,8 +55,6 @@ JSON Crack is a tool for visualizing JSON data in a structured, interactive grap
 
 ## Integrations
 
-- [VS Code Extension](https://marketplace.visualstudio.com/items?itemName=AykutSarac.jsoncrack-vscode)
-- [Chrome Extension](https://chromewebstore.google.com/detail/hbaeglefdflnhodchjiaphmheaojikhh)
 - [npm Package (`jsoncrack-react`)](https://www.npmjs.com/package/jsoncrack-react)
 
 ## Contributing
@@ -131,30 +125,11 @@ From repository root:
 pnpm dev:www
 pnpm build:www
 
-# VS Code extension
-pnpm dev:vscode
-pnpm build:vscode
-pnpm lint:vscode
-pnpm lint:fix:vscode
-
-# Chrome extension
-pnpm dev:chrome
-pnpm build:chrome
-pnpm lint:chrome
-
 # All workspaces
 pnpm dev
 pnpm build
 pnpm lint
 ```
-
-### Debug VS Code Extension
-
-1. Open repository root in VS Code.
-2. Press `F5`.
-3. Select `Run VSCode Extension (apps/vscode)` when prompted.
-4. In the Extension Development Host window, open a `.json` file and run:
-   `JSON Crack: Enable JSON Crack visualization`.
 
 ### Docker
 
