@@ -4,7 +4,7 @@
   "license": "Apache-2.0",
   "homepage": "https://jsoncrack.com",
   "author": {
-    "name": "Aykut Saraç",
+    "name": "Aykut Sara\u00e7",
     "email": "aykutsarac0@gmail.com"
   },
   "bugs": {
@@ -20,13 +20,25 @@
     "analyze": "nub run --filter jsoncrack-react build && ANALYZE=true nub run --filter www build",
     "clean": "nub run -r --if-present clean"
   },
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "packageManager": "nub@0.6.0",
   "devEngines": {
-    "packageManager": { "name": "nub", "version": "0.6.0", "onFail": "ignore" },
-    "runtime": { "name": "node", "version": "26.5.1" }
+    "packageManager": {
+      "name": "nub",
+      "version": "0.6.0",
+      "onFail": "ignore"
+    },
+    "runtime": {
+      "name": "node",
+      "version": "26.5.1"
+    }
   },
   "overrides": {
-    "html-to-image": "1.11.11"
+    "html-to-image": "1.11.11",
+    "postcss": "8.5.18",
+    "sharp": "0.35.0"
   }
 }
