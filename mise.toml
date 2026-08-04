@@ -1,0 +1,85 @@
+[tools]
+nub = "0.6.0"
+
+[tasks.install]
+description = "Install dependencies"
+run = "nub install"
+
+[tasks.dev]
+description = "Start development server"
+run = "nub run dev"
+
+[tasks.build]
+description = "Build all packages"
+run = "nub run build"
+
+[tasks.start]
+description = "Start production server"
+run = "nub run start"
+
+[tasks.lint]
+description = "Run linting"
+run = "nub run lint"
+
+[tasks."lint:fix"]
+description = "Fix lint issues"
+run = "nub run lint:fix"
+
+[tasks.test]
+description = "Run tests"
+run = "nub run test"
+
+[tasks.analyze]
+description = "Build with bundle analyzer"
+run = "nub run analyze"
+
+[tasks.clean]
+description = "Clean build outputs"
+run = "nub run clean"
+
+[tasks."dc:validate"]
+description = "Validate compose config"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+echo "Validating compose.yml..."
+docker compose config --quiet
+echo "Compose config OK"
+'''
+
+[tasks."dc:up"]
+description = "Build from source and start"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+if [ ! -f .env ]; then
+  cp .env.example .env
+  echo "Created .env from .env.example"
+fi
+docker compose up -d --build
+'''
+
+[tasks."dc:rec"]
+description = "Rebuild and recreate containers"
+run = "docker compose up -d --build --force-recreate --remove-orphans"
+
+[tasks."dc:down"]
+description = "Stop and remove containers"
+run = "docker compose down -v --remove-orphans"
+
+[tasks."dc:status"]
+description = "Show container status"
+run = 'docker compose ps --format "table {{.Name}}\t{{.Status}}"'
+
+[tasks."dc:logs"]
+description = "Tail container logs"
+run = "docker compose logs -f"
+
+[tasks."dc:prune"]
+description = "Nuclear cleanup: containers, images"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+docker compose down -v --remove-orphans 2>/dev/null || true
+docker compose down --rmi all 2>/dev/null || true
+'''

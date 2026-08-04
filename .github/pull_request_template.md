@@ -26,7 +26,7 @@ Step-by-step instructions to test the change:
 - [ ] Screen recording of the feature in action
 
 ### Testing
-- [ ] Tested locally with `pnpm dev`
+- [ ] Tested locally with `nub run dev`
 - [ ] No console errors
 - [ ] Tested with large JSON files (if applicable)
 

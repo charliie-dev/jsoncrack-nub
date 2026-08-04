@@ -1,8 +1,8 @@
 export enum FileFormat {
-  "JSON" = "json",
-  "YAML" = "yaml",
-  "XML" = "xml",
-  "CSV" = "csv",
+  JSON = "json",
+  YAML = "yaml",
+  XML = "xml",
+  CSV = "csv",
 }
 
 export const formats = [
