@@ -4,6 +4,12 @@
 .codex
 skills-lock.json
 
+# Local environment. The root .env holds an operator's own PORT, TAG and site URL and
+# is created by `mise run dc:up`; only the .example templates are tracked.
+.env
+!.env.example
+!apps/www/.env.example
+
 # Package manager
 node_modules/
 .npm-cache/

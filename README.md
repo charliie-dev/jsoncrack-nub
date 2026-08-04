@@ -108,6 +108,11 @@ JSON Crack officially launched as v1.0 on the 17th of February 2022 and we've co
    leaves your checkout permanently dirty and risks committing your own values.
    `.env.local` is gitignored and takes precedence, so put local changes there.
 
+   `.env.local` affects `nub run dev` and local builds only — it is deliberately kept
+   out of the Docker build context so a maintainer's own values never end up inlined
+   into a published image. For container builds set the values in the root `.env`
+   instead, which Compose passes to the build.
+
 4. Start the dev server:
 
    ```sh
@@ -155,9 +160,16 @@ Plus the `dc:*` Docker tasks below.
 | `PORT` | `8080` | Host port published by Docker Compose |
 | `TAG` | `latest` | Image tag `docker compose pull` fetches |
 
-App variables live in `apps/www/.env` (put local overrides in the gitignored
-`apps/www/.env.local`). `PORT`, `TAG` and `NEXT_PUBLIC_SITE_URL` are read from the root
-`.env` by Docker Compose.
+Where to set each one:
+
+| Scenario | File |
+| --- | --- |
+| `nub run dev` / local build | `apps/www/.env` for defaults, `apps/www/.env.local` for your own overrides |
+| `docker compose` | root `.env` — Compose forwards `NEXT_PUBLIC_SITE_URL` into the build and reads `PORT` and `TAG` itself |
+| GitHub Actions | the `NEXT_PUBLIC_SITE_URL` and `NEXT_PUBLIC_GA_MEASUREMENT_ID` repository variables |
+
+`apps/www/.env.local` is excluded from the Docker build context on purpose, so a
+maintainer's local values can never be inlined into a published image.
 
 ### Docker
 

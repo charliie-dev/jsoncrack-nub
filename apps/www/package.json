@@ -10,6 +10,7 @@
     "start": "serve out --listen 3000",
     "lint": "tsc --project tsconfig.json && eslint src && prettier --check src",
     "typecheck": "tsc --project tsconfig.json --noEmit",
+    "clean": "rm -rf .next out public/robots.txt public/sitemap.xml public/sitemap-0.xml",
     "lint:fix": "eslint --fix src && prettier --write src",
     "analyze": "ANALYZE=true nub run build"
   },
