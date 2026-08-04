@@ -4,15 +4,22 @@ on:
   pull_request:
     branches: ["main"]
 
+# Least privilege by default. Without this the jobs inherit the repository default,
+# which grants write on contents, packages, issues and more — none of which any job
+# here needs. Anything that needs more declares it at the job level.
+permissions: {}
+
 jobs:
   lint:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Set up nub
-        uses: nubjs/setup-nub@v0
+        uses: nubjs/setup-nub@47e5e7393d50f4e9544ddaf756aa277972afba2d # v0
         with:
           cache: true
 
@@ -22,36 +29,16 @@ jobs:
       - name: Lint
         run: nub run lint
 
-  audit:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      # trivy rather than `nub audit`: nub only audits the dependencies declared in
-      # the current package.json, and this repo's root is a pure workspace container
-      # with none. See the audit task in mise.toml.
-      #
-      # Gated on fixable advisories only. An advisory with no released fix is not
-      # actionable, so failing on it would just train everyone to ignore this job.
-      - name: Audit dependencies
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          scan-type: fs
-          scan-ref: .
-          scanners: vuln
-          severity: CRITICAL,HIGH
-          ignore-unfixed: true
-          exit-code: "1"
-
   test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Set up nub
-        uses: nubjs/setup-nub@v0
+        uses: nubjs/setup-nub@47e5e7393d50f4e9544ddaf756aa277972afba2d # v0
         with:
           cache: true
 
@@ -63,17 +50,19 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Set up nub
-        uses: nubjs/setup-nub@v0
+        uses: nubjs/setup-nub@47e5e7393d50f4e9544ddaf756aa277972afba2d # v0
         with:
           cache: true
 
       - name: Restore Next.js cache
-        uses: actions/cache@v5
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
         with:
           path: apps/www/.next/cache
           key: ${{ runner.os }}-next-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('apps/www/**.[jt]s', 'apps/www/**.[jt]sx', 'packages/**.[jt]s', 'packages/**.[jt]sx') }}
@@ -85,3 +74,27 @@ jobs:
 
       - name: Build
         run: nub run build
+
+  audit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      # trivy rather than `nub audit`: nub only audits the dependencies declared in
+      # the current package.json, and this repo's root is a pure workspace container
+      # with none. See the audit task in mise.toml.
+      #
+      # Gated on fixable advisories only. An advisory with no released fix is not
+      # actionable, so failing on it would just train everyone to ignore this job.
+      - name: Audit dependencies
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "1"
