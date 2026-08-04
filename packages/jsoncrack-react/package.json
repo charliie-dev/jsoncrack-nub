@@ -3,7 +3,7 @@
   "version": "1.0.3",
   "description": "Reusable JSON Crack canvas as a React component",
   "license": "Apache-2.0",
-  "author": "Aykut Saraç",
+  "author": "Aykut Sara\u00e7",
   "homepage": "https://jsoncrack.com",
   "repository": {
     "type": "git",
@@ -39,6 +39,7 @@
     "build": "vite build && tsc -p tsconfig.build.json",
     "clean": "rm -rf dist",
     "lint": "tsc -p tsconfig.build.json --noEmit && eslint src && prettier --check src",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit",
     "lint:fix": "eslint --fix src && prettier --write src",
     "test": "vitest run",
     "test:watch": "vitest"
