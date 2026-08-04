@@ -76,81 +76,114 @@ JSON Crack officially launched as v1.0 on the 17th of February 2022 and we've co
 
 ## Getting Started
 
-To get a local copy up and running, please follow these simple steps.
-
 ### Prerequisites
 
-Here is what you need to be able to run JSON Crack.
-
-- Node.js (Version: >=24.x)
-- pnpm (Version: >=10)
-
+- [mise](https://mise.jdx.dev/) (recommended) — installs the pinned nub version automatically
+- Or [nub](https://nubjs.com/) >= 0.6 and Node.js 26.5.1 installed manually
 
 ## Development
 
 ### Setup
 
-1. Clone the repo into a public GitHub repository (or fork https://github.com/AykutSarac/jsoncrack.com/fork). If you plan to distribute the code, read the [`LICENSE`](/LICENSE.md) for additional details.
+1. Clone the repo:
 
    ```sh
-   git clone https://github.com/AykutSarac/jsoncrack.com.git
+   git clone https://github.com/charliie-dev/jsoncrack-nub.git
+   cd jsoncrack-nub
    ```
 
-2. Go to the project folder
+2. Install dependencies:
 
    ```sh
-   cd jsoncrack.com
+   nub install
    ```
 
-3. Install packages
+3. Copy the example env file and adjust as needed:
 
    ```sh
-   pnpm install
+   cp apps/www/.env.example apps/www/.env
    ```
 
-4. Run the web app
+4. Start the dev server:
 
    ```sh
-   pnpm dev:www
-
-   # Running on http://localhost:3000/
+   nub run dev
    ```
 
-### Useful Commands
+   The editor is available at http://localhost:3000.
 
-From repository root:
+### Scripts
 
 ```sh
-# Web app
-pnpm dev:www
-pnpm build:www
-
-# All workspaces
-pnpm dev
-pnpm build
-pnpm lint
+nub run dev        # Start the dev server
+nub run build      # Build the static export
+nub run start      # Serve the production build
+nub run lint       # Typecheck, lint, and check formatting
+nub run lint:fix   # Fix lint and formatting issues
+nub run test       # Run the test suite
+nub run analyze    # Build with the bundle analyzer
+nub run clean      # Remove build outputs
 ```
+
+With mise installed, `mise run <task>` wraps each of these, plus the `dc:*` Docker tasks
+below.
+
+### Environment variables
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `NEXT_PUBLIC_NODE_LIMIT` | `10000` | Maximum number of nodes rendered in the graph |
+| `NEXT_TELEMETRY_DISABLED` | `1` | Disable Next.js telemetry |
+| `NEXT_PUBLIC_DISABLE_EXTERNAL_MODE` | `true` | Disable the external mode dialog |
+| `NEXT_PUBLIC_GA_MEASUREMENT_ID` | _(empty)_ | Google Analytics measurement ID (optional) |
+| `SITE_URL` | `https://jsoncrack.com` | Base URL used for sitemap generation (build-time) |
+| `PORT` | `8080` | Host port published by Docker Compose |
+
+App variables live in `apps/www/.env`; `PORT` and `SITE_URL` are read from the root `.env`
+by Docker Compose.
 
 ### Docker
 
-🐳 Docker assets are in `apps/www`.
-If you want to run JSON Crack locally:
+The root `compose.yml` builds the image from source and serves the static export through
+nginx:
 
-```console
-cd apps/www
+```sh
+cp .env.example .env
+docker compose up -d --build
 
-# Build a Docker image with:
-docker compose build
-
-# Run locally with docker compose
-docker compose up
-
-# Go to http://localhost:8888
+# The editor is available at http://localhost:8080
 ```
 
-## Configuration
+To run on a different port:
 
-The supported node limit can be changed by editing `NEXT_PUBLIC_NODE_LIMIT` in `apps/www/.env`.
+```sh
+PORT=3000 docker compose up -d --build
+```
+
+To set the sitemap base URL for a self-hosted instance:
+
+```sh
+SITE_URL=https://json.example.com docker compose up -d --build
+```
+
+Pre-built multi-arch images are published to GHCR on each release:
+
+```sh
+docker pull ghcr.io/charliie-dev/jsoncrack-nub:latest
+```
+
+With mise:
+
+```sh
+mise run dc:up         # Build and start
+mise run dc:status     # Show container status
+mise run dc:logs       # Tail logs
+mise run dc:down       # Stop and remove
+mise run dc:validate   # Validate the compose config
+```
+
+The container runs unprivileged as uid 65532 with a read-only root filesystem, all Linux
+capabilities dropped, and `no-new-privileges` set.
 
 <!-- LICENSE -->
 
