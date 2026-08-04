@@ -2,8 +2,6 @@ import React from "react";
 import Link from "next/link";
 import { Button } from "@mantine/core";
 import styled from "styled-components";
-import { FaChrome } from "react-icons/fa";
-import { VscVscode } from "react-icons/vsc";
 import { JSONCrackLogo } from "../JSONCrackBrandLogo";
 
 const StyledNavbarWrapper = styled.div`
@@ -60,32 +58,6 @@ export const Navbar = () => {
           <JSONCrackLogo fontSize="1.2rem" />
         </Left>
         <Center>
-          <Button
-            component="a"
-            href="https://marketplace.visualstudio.com/items?itemName=AykutSarac.jsoncrack-vscode"
-            target="_blank"
-            variant="subtle"
-            color="black"
-            size="md"
-            radius="md"
-            rel="noopener"
-            leftSection={<VscVscode size={16} />}
-          >
-            VS Code
-          </Button>
-          <Button
-            component="a"
-            href="https://chromewebstore.google.com/detail/json-crack/hbaeglefdflnhodchjiaphmheaojikhh"
-            target="_blank"
-            variant="subtle"
-            color="black"
-            size="md"
-            radius="md"
-            rel="noopener"
-            leftSection={<FaChrome size={16} />}
-          >
-            Chrome
-          </Button>
           <Button
             component={Link}
             prefetch={false}
