@@ -11,33 +11,22 @@
     "url": "https://github.com/AykutSarac/jsoncrack.com/issues"
   },
   "scripts": {
-    "dev": "turbo run dev",
-    "dev:www": "turbo run dev --filter=www",
-    "build": "turbo run build",
-    "build:www": "turbo run build --filter=www",
-    "start": "turbo run start",
-    "lint": "turbo run lint",
-    "lint:fix": "turbo run lint:fix",
-    "test": "turbo run test",
-    "analyze": "turbo run analyze",
-    "clean": "turbo run clean"
+    "dev": "nub run --filter jsoncrack-react build && nub run --filter www dev",
+    "build": "nub run -r build",
+    "start": "nub run --filter www start",
+    "lint": "nub run --filter jsoncrack-react build && nub run -r lint",
+    "lint:fix": "nub run -r lint:fix",
+    "test": "nub run -r --if-present test",
+    "analyze": "nub run --filter jsoncrack-react build && ANALYZE=true nub run --filter www build",
+    "clean": "nub run -r --if-present clean"
   },
-  "devDependencies": {
-    "turbo": "^2.8.20"
+  "workspaces": ["apps/*", "packages/*"],
+  "packageManager": "nub@0.6.0",
+  "devEngines": {
+    "packageManager": { "name": "nub", "version": "0.6.0", "onFail": "ignore" },
+    "runtime": { "name": "node", "version": "26.5.1" }
   },
-  "engines": {
-    "node": ">=24",
-    "pnpm": ">=10"
-  },
-  "packageManager": "pnpm@10.20.0",
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild",
-      "sharp",
-      "unrs-resolver"
-    ],
-    "overrides": {
-      "html-to-image": "1.11.11"
-    }
+  "overrides": {
+    "html-to-image": "1.11.11"
   }
 }
