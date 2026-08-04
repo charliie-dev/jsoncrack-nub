@@ -91,10 +91,13 @@
 accent（`rosewater`、`flamingo`、`pink`、`mauve`、`red`、`maroon`、`peach`、`yellow`、`green`、
 `teal`、`sky`、`sapphire`、`blue`、`lavender`）。
 
-另匯出 `ACCENT_POOL`，**每個 flavor 各一份**，是該 flavor 下對比足夠的 accent 排序子集。兩個
-flavor 不能共用同一份：Mocha 底上偏弱的是 `yellow` 與 `rosewater`，Latte 是淺底，偏弱的是另一組
-淺色 accent。兩份池的長度必須相同，否則同一份文件在亮暗之間切換時 `hash % length` 的取模結果會變，
-節點顏色會整批跳動。
+另匯出 `ACCENT_POOL`，**單一組色名陣列，兩個 flavor 共用**。名稱相同、值各自取自該 flavor，所以
+`hash(key) % ACCENT_POOL.length` 在亮暗切換時結果不變，節點不會整批換色。若改成每個 flavor 一份池
+而長度不同，切換主題會讓每個節點的顏色重新洗牌。
+
+14 個 accent 裡排除 5 個，理由是在 header 尺寸下與鄰近色難以分辨，不是對比不足：`rosewater` 與
+`flamingo` 讀起來像 `pink`，`maroon` 像 `red`，`sapphire` 像 `sky`；`yellow` 則是 Latte 淺底上最弱
+的一色。剩下 9 個：`mauve`、`red`、`peach`、`green`、`teal`、`sky`、`blue`、`lavender`、`pink`。
 
 **改 `packages/jsoncrack-react/src/theme.ts`**
 
@@ -114,15 +117,17 @@ Mantine 的 `colors` 需要 10 階陣列，以 Catppuccin accent 為中心生成
 `mauve`。`Toaster` 的 `toastOptions.style` 目前硬編 `#4D4D4D` 與 `#B9BBBE`，改成 `surface0` 與
 `text`。
 
-**三處色碼比對必須一起改掉**
+**七處色碼比對必須一起改掉**
 
-以下三處用比對色碼字串判斷亮暗，換色盤後會全部選錯值：
+`theme.BACKGROUND_SECONDARY === "#f2f3f5"` 這個判斷式出現七次，換色盤後全部會選錯值：
 
-- `apps/www/src/features/editor/views/GraphView/index.tsx:33`（節點陰影色）
-- `apps/www/src/features/editor/views/GraphView/Toolbar/index.tsx:50` 附近（`glassSurface` 的陰影）
-- `apps/www/src/features/editor/views/GraphView/Toolbar/index.tsx:79`（divider 邊框色）
+- `GraphView/index.tsx:33`，節點的 drop-shadow
+- `GraphView/Toolbar/index.tsx` 的 `glassSurface` 共五處：背景（28 附近）、邊框（34）、inset 高光
+  （39）、近距陰影（44）、遠距陰影（47）
+- `GraphView/Toolbar/index.tsx:78`，`StyledToolbar` 的 divider 邊框
 
-改成讀 `useConfig.darkmodeEnabled`。`GraphView/index.tsx` 第 57 行已經在讀它。
+修法是在 theme 物件加一個 `IS_DARK: boolean`，七處直接讀它。不逐處改成 `$dark` prop：五處在共用的
+`glassSurface` css helper 裡，加 prop 就得讓每個使用者往下傳。放進 theme 之後也不可能再漂移。
 
 ### 2. 節點 header 與 accent
 
@@ -142,8 +147,10 @@ FNV-1a 或 djb2。要求：同一輸入永遠同一輸出，跨 session 穩定�
 - 背景是 accent 與 `base` 的低比例混色，文字用 accent 原色。與截圖一致，截圖的
   `author` 是深綠底加亮綠字、`scripts` 是深紫底加亮紫字，不是亮底深字
 
-**混色必須在 JS 端算成 hex，不能用 CSS `color-mix()`。** canvas 是 SVG，節點底色以 attribute 形式
-傳給 reaflow 的 `rect`，SVG attribute 不吃 CSS 色彩函式。混色函式與 `accentForKey` 放在一起。
+**混色在 JS 端算成 hex，不用 CSS `color-mix()`。** 節點是用 `<foreignObject>` 渲染 HTML，所以
+header 其實可以吃 CSS 色彩函式，這點與最初的判斷不同。改用 JS 的理由是可單元測試，而且同一個色值也
+要給沒有元素可讀的程式碼使用，不必依賴瀏覽器對 `color-mix` 的支援差異。混色函式與 `accentForKey`
+放在一起。
 
 **改 `packages/jsoncrack-react/src/utils/calculateNodeSize.ts`**
 
