@@ -1,11 +1,16 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/compose-spec/compose-spec/master/schema/compose-spec.json
 services:
   jsoncrack:
+    # Naming the published image gives a credential-free path: `docker compose pull`
+    # fetches it from GHCR. Building instead (`docker compose build`, or
+    # `up --build`) needs a `docker login dhi.io` first, because the Dockerfile's
+    # production stage pulls Docker Hardened Images.
+    image: ghcr.io/charliie-dev/jsoncrack-nub:${TAG:-latest}
     build:
       context: .
       dockerfile: apps/www/Dockerfile
       args:
-        SITE_URL: ${SITE_URL:-https://jsoncrack.com}
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-https://jsoncrack.com}
     container_name: jsoncrack
     ports:
       - "${PORT:-8080}:8080"
@@ -20,25 +25,37 @@ services:
     # nginx runs as uid 65532 and needs these paths writable. A tmpfs mount is
     # created root-owned, so mode 0777 is what lets the unprivileged process use
     # it; the container drops every capability and runs a single process.
+    #
+    # Every mount is size-capped. An uncapped tmpfs defaults to half of host RAM,
+    # so a scanned or long-running instance could fill memory until the host OOMs.
+    # /var/log/nginx only exists because the base image's main config opens
+    # error.log there at startup; nginx.conf redirects the server's own logs to
+    # stdout/stderr, so this mount stays near-empty.
     volumes:
       - type: tmpfs
         target: /tmp
         tmpfs:
           mode: 0777
+          size: 64m
       - type: tmpfs
         target: /run/nginx
         tmpfs:
           mode: 0777
+          size: 1m
       - type: tmpfs
         target: /var/lib/nginx/tmp
         tmpfs:
           mode: 0777
+          size: 64m
       - type: tmpfs
         target: /var/log/nginx
         tmpfs:
           mode: 0777
+          size: 16m
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO /dev/null http://localhost:8080/ || exit 1"]
+      # 127.0.0.1, not localhost: inside the container localhost resolves to ::1
+      # first, and nginx listens on IPv4 only (see apps/www/nginx.conf).
+      test: ["CMD-SHELL", "wget -qO /dev/null http://127.0.0.1:8080/ || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3

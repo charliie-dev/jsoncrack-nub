@@ -1,8 +1,19 @@
-# Secrets
+# Secrets and developer-local overrides.
+#
+# Patterns without `**` are anchored at the context root, so the recursive forms
+# below are what actually keep a nested file such as apps/www/.env.local out of
+# the image. That matters: Next.js loads .env.local at higher precedence than
+# .env, so a maintainer's local GA id or private SITE_URL would otherwise be
+# inlined into the exported bundle and shipped in the published image.
+#
+# The root .env holds Compose interpolation only (PORT, SITE_URL, TAG) and has no
+# business in the image. apps/www/.env is deliberately NOT excluded — it is the
+# committed set of app defaults the build needs.
 .env
-.env.*
-*.pem
-*.key
+**/.env.local
+**/.env.*.local
+**/*.pem
+**/*.key
 
 # Git history
 .git
@@ -30,3 +41,4 @@ npm-debug.log
 
 # Docs
 *.md
+**/*.md
