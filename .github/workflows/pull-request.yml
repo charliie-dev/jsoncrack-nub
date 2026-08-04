@@ -22,6 +22,28 @@ jobs:
       - name: Lint
         run: nub run lint
 
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      # trivy rather than `nub audit`: nub only audits the dependencies declared in
+      # the current package.json, and this repo's root is a pure workspace container
+      # with none. See the audit task in mise.toml.
+      #
+      # Gated on fixable advisories only. An advisory with no released fix is not
+      # actionable, so failing on it would just train everyone to ignore this job.
+      - name: Audit dependencies
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "1"
+
   test:
     runs-on: ubuntu-latest
     steps:

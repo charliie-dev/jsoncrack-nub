@@ -11,7 +11,25 @@ run = "nub run dev"
 
 [tasks.build]
 description = "Build all packages"
+depends = ["install"]
 run = "nub run build"
+
+[tasks.typecheck]
+description = "Type check both workspaces without linting or formatting"
+depends = ["install"]
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+# `lint` bundles tsc, eslint and prettier, so this is the fast path when you only
+# want type errors. jsoncrack-react has to be built first: www's tsc reads its
+# emitted .d.ts files.
+#
+# Each workspace owns a `typecheck` script so tsc runs with the package as cwd.
+# `nub exec --filter <pkg> tsc -p tsconfig.build.json` does not work here: exec
+# keeps the workspace root as cwd, so the relative config path fails with TS5058.
+nub run --filter jsoncrack-react build
+nub run -r typecheck
+'''
 
 [tasks.start]
 description = "Start production server"
@@ -34,8 +52,119 @@ description = "Build with bundle analyzer"
 run = "nub run analyze"
 
 [tasks.clean]
-description = "Clean build outputs"
-run = "nub run clean"
+description = "Remove build outputs, caches and generated artifacts"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+shopt -s nullglob
+
+# The per-workspace `clean` scripts only cover jsoncrack-react/dist — apps/www has
+# no clean script at all, so .next and out were never removed. Everything the
+# build or postbuild writes is listed here.
+to_remove=(
+  apps/www/.next
+  apps/www/out
+  apps/www/public/robots.txt
+  apps/www/public/sitemap.xml
+  apps/www/public/sitemap-0.xml
+  packages/jsoncrack-react/dist
+  coverage
+  packages/jsoncrack-react/coverage
+  .eslintcache
+)
+
+if [ "${DEEP:-}" = "1" ]; then
+  to_remove+=(node_modules apps/www/node_modules packages/jsoncrack-react/node_modules)
+fi
+
+removed=0
+for path in "${to_remove[@]}"; do
+  if [ -e "$path" ]; then
+    echo "Removing $path"
+    rm -rf "$path"
+    removed=$((removed + 1))
+  fi
+done
+echo "Done: $removed item(s) removed."
+[ "${DEEP:-}" = "1" ] && echo "node_modules removed — run 'mise run install' before building."
+exit 0
+'''
+
+[tasks.audit]
+description = "Scan dependencies for known vulnerabilities"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Not `nub audit`: it only inspects the dependencies declared in the *current*
+# package.json. The root package.json here is a pure workspace container with zero
+# deps, so `nub audit` reports "No dependencies to audit", and running it inside a
+# workspace fails with "no lockfile found" because the lockfile lives at the root.
+# There is no -r/--filter to bridge that (nub 0.6.0), and `nub sbom` is not
+# implemented yet. trivy reads pnpm-lock.yaml natively and sees the whole tree.
+if ! command -v trivy >/dev/null 2>&1; then
+  echo "audit: trivy not found. Install it (https://trivy.dev) or run 'mise run audit' in CI." >&2
+  exit 1
+fi
+
+# --ignore-unfixed on purpose: an advisory with no released fix is not actionable,
+# so failing on it would only teach people to ignore this task.
+trivy fs --scanners vuln --severity "${AUDIT_SEVERITY:-CRITICAL,HIGH}" --ignore-unfixed --exit-code 1 .
+'''
+
+[tasks."audit:all"]
+description = "Show every advisory, including ones with no fix available"
+run = "trivy fs --scanners vuln --severity CRITICAL,HIGH,MEDIUM,LOW ."
+
+[tasks.deptree]
+description = "Show the dependency tree, or why a package is installed (PKG=<name>)"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+if [ -n "${PKG:-}" ]; then
+  nub why "$PKG"
+else
+  nub list
+fi
+'''
+
+[tasks."bundle-size"]
+description = "Report raw and gzipped size of the exported bundle"
+depends = ["build"]
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+DIST="${BUNDLE_SIZE_DIR:-apps/www/out}"
+if [ ! -d "$DIST" ]; then
+  echo "bundle-size: $DIST not found. Run 'mise run build' first." >&2
+  exit 1
+fi
+
+hr() {
+  awk -v n="$1" 'BEGIN {
+    s[1]="B"; s[2]="K"; s[3]="M"; s[4]="G"
+    i = 1
+    while (n >= 1024 && i < 4) { n /= 1024; i++ }
+    if (i == 1) printf "%d %s", n, s[i]
+    else printf "%.2f %s", n, s[i]
+  }'
+}
+
+printf "%-64s %10s %10s\n" "file" "raw" "gzipped"
+printf '%.0s-' {1..86}; echo
+total=0
+total_gz=0
+while IFS= read -r f; do
+  size=$(wc -c < "$f" | tr -d ' ')
+  size_gz=$(gzip -cn "$f" | wc -c | tr -d ' ')
+  total=$((total + size))
+  total_gz=$((total_gz + size_gz))
+  printf "%-64s %10s %10s\n" "${f#"$DIST"/}" "$(hr "$size")" "$(hr "$size_gz")"
+done < <(find "$DIST" -type f \( -name '*.js' -o -name '*.css' -o -name '*.html' \) | sort)
+printf '%.0s-' {1..86}; echo
+printf "%-64s %10s %10s\n" "TOTAL" "$(hr "$total")" "$(hr "$total_gz")"
+'''
 
 [tasks."dc:validate"]
 description = "Validate compose config"
@@ -69,7 +198,9 @@ run = "docker compose down -v --remove-orphans"
 
 [tasks."dc:status"]
 description = "Show container status"
-run = 'docker compose ps --format "table {{.Name}}\t{{.Status}}"'
+# mise renders task scripts through Tera first, which parses `{{ ... }}` itself and
+# chokes on Go template fields. `raw` hands the braces through to docker untouched.
+run = '{% raw %}docker compose ps --format "table {{.Name}}\t{{.Status}}"{% endraw %}'
 
 [tasks."dc:logs"]
 description = "Tail container logs"
