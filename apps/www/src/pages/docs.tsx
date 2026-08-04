@@ -25,9 +25,13 @@ const StyledFrame = styled.iframe`
   height: 420px;
 `;
 
+// Built from SITE_URL so a self-hosted instance's docs hand out its own widget URL.
+// Hard-coding jsoncrack.com made the copy-pasteable snippet embed the public widget, so
+// JSON posted into the iframe left for a third-party origin — and rendered blank behind
+// a firewall.
 const iframeExample = `<iframe
   id="json-crack-embed"
-  src="https://jsoncrack.com/widget"
+  src="${absoluteUrl("/widget")}"
   width="100%"
   height="600"
   style="border: none;"
@@ -35,7 +39,7 @@ const iframeExample = `<iframe
 
 const fetchExample = `<iframe
   id="json-crack-embed"
-  src="https://jsoncrack.com/widget?json=https://catfact.ninja/fact"
+  src="${absoluteUrl("/widget")}?json=https://catfact.ninja/fact"
   width="100%"
   height="600"
   style="border: none;"

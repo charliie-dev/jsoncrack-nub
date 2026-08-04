@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Modal, Button, Text, Stack, List, ThemeIcon, Title, SimpleGrid } from "@mantine/core";
 import { LuPencil, LuSparkles, LuHardDrive, LuMaximize, LuMessageSquare } from "react-icons/lu";
 import { TbCode, TbBrandOpenSource, TbHistory, TbFile } from "react-icons/tb";
+import { PROMO_SURFACES_ENABLED } from "../../../constants/externalMode";
 
 const SESSION_KEY = "editor_choice_shown";
 
@@ -10,7 +11,7 @@ export const EditorChoiceModal = () => {
 
   useEffect(() => {
     const dismissed = document.cookie.split("; ").some(c => c === `${SESSION_KEY}=true`);
-    if (process.env.NEXT_PUBLIC_DISABLE_EXTERNAL_MODE !== "true" && !dismissed) {
+    if (PROMO_SURFACES_ENABLED && !dismissed) {
       setOpened(true);
     }
   }, []);
