@@ -25,6 +25,37 @@ The lockfile still differs from upstream substantially, because removing `apps/v
 `apps/chrome-extension` drops `importers` from five to three. It is a textual conflict now,
 not a structural one.
 
+## `nub audit` cannot see a monorepo's dependencies
+
+`nub audit` only inspects the dependencies declared in the *current* package.json. This
+repo's root is a pure workspace container with zero deps, so at the root it reports:
+
+```
+No dependencies to audit.
+```
+
+Running it inside a workspace does not help — the lockfile lives at the root:
+
+```
+× no lockfile found — run `nub install` before `nub audit`
+```
+
+Every escape route is closed in 0.6.0. There is no `-r` / `--filter` /
+`--include-workspace-root` on `audit` (checked the full `--help`); `-C/--dir` only changes
+directory and still will not find the root lockfile; and `nub sbom` is unimplemented —
+`not yet supported — the engine stamps its own identity into the SBOM document body` — with
+a suggestion to use `npm sbom`, which dies on this repo with
+`EUNSUPPORTEDPROTOCOL: workspace:*`.
+
+This is an inconsistency inside nub rather than a missing flag: `nub licenses` at the root
+*does* enumerate the whole workspace, transitive packages included. `licenses` walks the
+installed tree; `audit` and `outdated` walk the current package.json.
+
+The consequence was not theoretical. trivy reads pnpm-lock.yaml natively and found 8 high
+and 10 moderate advisories that `nub audit` reported as "no dependencies" — including four
+high-severity next CVEs. So `mise run audit` and the CI job both use trivy, gated on
+fixable advisories only, since one with no released fix is not actionable.
+
 ## pnpm-workspace.yaml is silently ignored
 
 Undocumented: under nub identity, `pnpm-workspace.yaml` is not read. nub prints
