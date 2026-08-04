@@ -40,10 +40,20 @@ jobs:
       - name: Install dependencies
         run: nub ci
 
+      # SITE_URL is exported as NEXT_PUBLIC_SITE_URL only when it carries a value.
+      # An unset repository variable renders as an empty string, and @next/env skips any
+      # key already present in process.env — verified by building with the var empty,
+      # which masked apps/www/.env and fell back to jsoncrack.com. Without this the
+      # Pages deploy publishes a robots.txt and sitemap advertising a domain this fork
+      # does not control, since next-sitemap now generates robots.txt and the committed
+      # copy that used to ship in public/ is gone.
       - name: Build
-        run: nub run build
+        run: |
+          if [ -n "${SITE_URL:-}" ]; then export NEXT_PUBLIC_SITE_URL="$SITE_URL"; fi
+          nub run build
         env:
           NEXT_PUBLIC_GA_MEASUREMENT_ID: ${{ vars.NEXT_PUBLIC_GA_MEASUREMENT_ID }}
+          SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4

@@ -10,7 +10,9 @@ services:
       context: .
       dockerfile: apps/www/Dockerfile
       args:
-        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-https://jsoncrack.com}
+        # Maps to the Dockerfile's SITE_URL arg. Empty is safe and means "leave it to
+        # apps/www/.env"; only a real value overrides.
+        SITE_URL: ${NEXT_PUBLIC_SITE_URL:-}
     container_name: jsoncrack
     ports:
       - "${PORT:-8080}:8080"
