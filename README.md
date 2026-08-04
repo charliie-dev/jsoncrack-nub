@@ -98,11 +98,15 @@ JSON Crack officially launched as v1.0 on the 17th of February 2022 and we've co
    nub install
    ```
 
-3. Copy the example env file and adjust as needed:
+3. Optional — override any app defaults locally:
 
    ```sh
-   cp apps/www/.env.example apps/www/.env
+   cp apps/www/.env.example apps/www/.env.local
    ```
+
+   `apps/www/.env` holds the committed defaults and is tracked, so overwriting it
+   leaves your checkout permanently dirty and risks committing your own values.
+   `.env.local` is gitignored and takes precedence, so put local changes there.
 
 4. Start the dev server:
 

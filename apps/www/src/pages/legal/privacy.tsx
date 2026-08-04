@@ -2,7 +2,7 @@ import React from "react";
 import Head from "next/head";
 import { Box, Container, Paper, Stack, Text, Title } from "@mantine/core";
 import { generateNextSeo } from "next-seo/pages";
-import { SEO } from "../../constants/seo";
+import { absoluteUrl, SEO } from "../../constants/seo";
 import privacy from "../../data/privacy.json";
 import Layout from "../../layout/PageLayout";
 
@@ -14,7 +14,7 @@ const Privacy = () => {
           ...SEO,
           title: "Privacy Policy - JSON Crack",
           description: "JSON Crack Privacy Policy",
-          canonical: "https://jsoncrack.com/legal/privacy",
+          canonical: absoluteUrl("/legal/privacy"),
         })}
       </Head>
       <Container my={50} size="md" pb="lg">

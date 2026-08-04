@@ -2,7 +2,10 @@ name: Image Building and Publishing
 
 on:
   release:
-    types: [created]
+    # `published` covers both paths; `created` never fires for a release that was
+    # saved as a draft first and published later, which fails silently — no red
+    # run to notice, just an absent one.
+    types: [published]
   workflow_dispatch:
 
 env:
@@ -18,37 +21,13 @@ jobs:
       attestations: write
       id-token: write
 
+    # No untagged-version cleanup here on purpose. This workflow pushes a
+    # multi-arch manifest list, whose per-architecture child manifests are
+    # themselves untagged package versions. Deleting untagged versions therefore
+    # destroys the amd64/arm64 children of previously published tags, and
+    # `docker pull …:<older-tag>` starts failing with `manifest unknown` for
+    # everyone already deployed on that tag.
     steps:
-      - name: Derive container package name
-        id: vars
-        run: |
-          echo "pkg_lc=$(echo "${GITHUB_REPOSITORY#*/}" | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
-
-      - name: Check if GHCR package exists
-        id: pkg
-        env:
-          OWNER: ${{ github.repository_owner }}
-          PKG: ${{ steps.vars.outputs.pkg_lc }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          if gh api -H "Accept: application/vnd.github+json" \
-            "/orgs/$OWNER/packages/container/$PKG" >/dev/null 2>&1 ||
-            gh api -H "Accept: application/vnd.github+json" \
-            "/users/$OWNER/packages/container/$PKG" >/dev/null 2>&1; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Cleanup untagged images
-        uses: actions/delete-package-versions@v5
-        if: steps.pkg.outputs.exists == 'true'
-        with:
-          package-name: ${{ steps.vars.outputs.pkg_lc }}
-          package-type: "container"
-          delete-only-untagged-versions: true
-          token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Checkout
         uses: actions/checkout@v6
 

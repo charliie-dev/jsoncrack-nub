@@ -15,7 +15,7 @@ import {
 import { CodeHighlight } from "@mantine/code-highlight";
 import styled from "styled-components";
 import { generateNextSeo } from "next-seo/pages";
-import { SEO } from "../constants/seo";
+import { absoluteUrl, SEO } from "../constants/seo";
 import Layout from "../layout/PageLayout";
 
 const StyledFrame = styled.iframe`
@@ -68,7 +68,7 @@ const Docs = () => {
           title: "Documentation - JSON Crack",
           description:
             "Integrate JSON Crack into your website with iframes, postMessage API, or the React component.",
-          canonical: "https://jsoncrack.com/docs",
+          canonical: absoluteUrl("/docs"),
         })}
       </Head>
       <Container size="md" py={60}>

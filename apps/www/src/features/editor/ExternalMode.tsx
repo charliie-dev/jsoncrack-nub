@@ -51,7 +51,7 @@ const ExternalMode = () => {
             <Accordion.Control>How can I stop this dialog from appearing?</Accordion.Control>
             <Accordion.Panel>
               You can disable this dialog by setting <Code>NEXT_PUBLIC_DISABLE_EXTERNAL_MODE</Code>{" "}
-              to <Code>true</Code> in your <Code>.env.development</Code> file.
+              to <Code>true</Code> in your <Code>.env</Code> file.
               <br />
               <br />
               If you want to re-enable it, simply remove or set the value to <Code>false</Code>.

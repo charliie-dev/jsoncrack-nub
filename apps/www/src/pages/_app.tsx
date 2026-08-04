@@ -74,7 +74,12 @@ function JSONCrackApp({ Component, pageProps }: AppProps) {
   const colorSchemeManager = smartColorSchemeManager({
     key: "editor-color-scheme",
     getPathname: () => pathname,
-    dynamicPaths: ["/editor", "/widget"], // Editor and widget paths use dynamic theme
+    // Editor and widget paths use dynamic theme. "/" is here because this fork
+    // serves the editor at the site root; without it the manager forces light on
+    // the homepage while the editor paints dark, flashing on every load, and
+    // `set()` silently drops theme toggles made there. The match is exact for
+    // "/" — the prefix test compares against `${path}/`, i.e. "//".
+    dynamicPaths: ["/", "/editor", "/widget"],
   });
 
   return (
