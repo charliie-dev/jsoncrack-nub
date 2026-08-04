@@ -2,7 +2,7 @@ import React from "react";
 import Head from "next/head";
 import { Box, Container, Paper, Stack, Text, Title } from "@mantine/core";
 import { generateNextSeo } from "next-seo/pages";
-import { SEO } from "../../constants/seo";
+import { absoluteUrl, SEO } from "../../constants/seo";
 import terms from "../../data/terms.json";
 import Layout from "../../layout/PageLayout";
 
@@ -14,7 +14,7 @@ const Terms = () => {
           ...SEO,
           title: "Terms of Service - JSON Crack",
           description: "JSON Crack Terms of Service",
-          canonical: "https://jsoncrack.com/legal/terms",
+          canonical: absoluteUrl("/legal/terms"),
         })}
       </Head>
       <Container my={50} size="md" pb="lg">

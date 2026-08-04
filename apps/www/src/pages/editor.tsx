@@ -10,7 +10,7 @@ import "allotment/dist/style.css";
 import { generateNextSeo } from "next-seo/pages";
 import { event as gaEvent } from "nextjs-google-analytics";
 import { LuChevronsRight } from "react-icons/lu";
-import { SEO } from "../constants/seo";
+import { absoluteUrl, SEO } from "../constants/seo";
 import { darkTheme, lightTheme } from "../constants/theme";
 import { BottomBar } from "../features/editor/BottomBar";
 import { FullscreenDropzone } from "../features/editor/FullscreenDropzone";
@@ -99,7 +99,25 @@ const LiveEditor = dynamic(() => import("../features/editor/LiveEditor"), {
   ssr: false,
 });
 
-const EditorPage = () => {
+export interface EditorPageProps {
+  /**
+   * Site-root-relative path this render should canonicalize to. The index route
+   * renders this same component, so it passes "/" — without that, `/` would
+   * self-canonicalize to `/editor` and drop the site root from search indexes.
+   */
+  canonicalPath?: string;
+  title?: string;
+  description?: string;
+}
+
+const EDITOR_DESCRIPTION =
+  "JSON Crack Editor is a tool for visualizing into graphs, analyzing, editing, formatting, querying, transforming and validating JSON, CSV, YAML, XML, and more.";
+
+const EditorPage = ({
+  canonicalPath = "/editor",
+  title = "Editor | JSON Crack",
+  description = EDITOR_DESCRIPTION,
+}: EditorPageProps) => {
   const { query, isReady } = useRouter();
   const { setColorScheme } = useMantineColorScheme();
   const checkEditorSession = useFile(state => state.checkEditorSession);
@@ -125,10 +143,9 @@ const EditorPage = () => {
       <Head>
         {generateNextSeo({
           ...SEO,
-          title: "Editor | JSON Crack",
-          description:
-            "JSON Crack Editor is a tool for visualizing into graphs, analyzing, editing, formatting, querying, transforming and validating JSON, CSV, YAML, XML, and more.",
-          canonical: "https://jsoncrack.com/editor",
+          title,
+          description,
+          canonical: absoluteUrl(canonicalPath),
         })}
       </Head>
       <ThemeProvider theme={darkmodeEnabled ? darkTheme : lightTheme}>
