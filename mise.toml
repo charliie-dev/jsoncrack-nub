@@ -64,6 +64,7 @@ shopt -s nullglob
 to_remove=(
   apps/www/.next
   apps/www/out
+  apps/www/public/monaco
   apps/www/public/robots.txt
   apps/www/public/sitemap.xml
   apps/www/public/sitemap-0.xml
@@ -177,7 +178,32 @@ echo "Compose config OK"
 '''
 
 [tasks."dc:up"]
-description = "Build from source and start"
+description = "Build from source and start (needs `docker login dhi.io`)"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Building resolves the Dockerfile's production stage from Docker Hardened Images, which
+# is entitlement-gated. Say so before spending minutes on the Node stages only to fail at
+# the last one with an opaque authorization error. `mise run dc:pull` needs no credentials.
+if ! docker system info 2>/dev/null | grep -q 'dhi.io'; then
+  if ! grep -q 'dhi.io' "${DOCKER_CONFIG:-$HOME/.docker}/config.json" 2>/dev/null \
+    && ! grep -q 'dhi.io' "${XDG_CONFIG_HOME:-$HOME/.config}/docker/config.json" 2>/dev/null; then
+    echo "dc:up: no dhi.io credentials found. This build pulls Docker Hardened Images." >&2
+    echo "       Run 'docker login dhi.io', or use 'mise run dc:pull' for the published image." >&2
+    exit 1
+  fi
+fi
+
+if [ ! -f .env ]; then
+  cp .env.example .env
+  echo "Created .env from .env.example"
+fi
+docker compose up -d --build
+'''
+
+[tasks."dc:pull"]
+description = "Start from the published image (no dhi.io credentials needed)"
 run = '''
 #!/usr/bin/env bash
 set -euo pipefail
@@ -185,7 +211,8 @@ if [ ! -f .env ]; then
   cp .env.example .env
   echo "Created .env from .env.example"
 fi
-docker compose up -d --build
+docker compose pull
+docker compose up -d
 '''
 
 [tasks."dc:rec"]

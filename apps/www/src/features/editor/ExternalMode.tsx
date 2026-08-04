@@ -1,11 +1,12 @@
 import React from "react";
 import { Accordion, Anchor, Code, Flex, FocusTrap, Group, Modal, Text } from "@mantine/core";
+import { PROMO_SURFACES_ENABLED } from "../../constants/externalMode";
 
 const ExternalMode = () => {
   const [isExternal, setExternal] = React.useState(false);
 
   React.useEffect(() => {
-    if (process.env.NEXT_PUBLIC_DISABLE_EXTERNAL_MODE === "false") {
+    if (PROMO_SURFACES_ENABLED) {
       if (typeof window !== "undefined") {
         if (window.location.pathname.includes("widget")) return setExternal(false);
         if (window.location.host !== "jsoncrack.com") return setExternal(true);

@@ -3,9 +3,9 @@ import { Flex, Group } from "@mantine/core";
 import styled from "styled-components";
 import toast from "react-hot-toast";
 import { AiOutlineFullscreen } from "react-icons/ai";
-import { FaChrome } from "react-icons/fa";
 import { FaGithub } from "react-icons/fa6";
 import { TbExternalLink } from "react-icons/tb";
+import { PROMO_SURFACES_ENABLED } from "../../../constants/externalMode";
 import { JSONCrackLogo } from "../../../layout/JSONCrackBrandLogo";
 import { FileMenu } from "./FileMenu";
 import { ThemeToggle } from "./ThemeToggle";
@@ -75,7 +75,7 @@ export const Toolbar = () => {
         <ToolsMenu />
       </Group>
       <Group gap="xs" justify="right" w="100%" style={{ flexWrap: "nowrap" }}>
-        {process.env.NEXT_PUBLIC_DISABLE_EXTERNAL_MODE !== "true" && (
+        {PROMO_SURFACES_ENABLED && (
           <StyledToDiagramLink
             href="https://todiagram.com/editor?utm_source=jsoncrack&utm_medium=toolbar"
             target="_blank"
@@ -85,15 +85,10 @@ export const Toolbar = () => {
           </StyledToDiagramLink>
         )}
         <ThemeToggle />
-        <Link
-          href="https://chromewebstore.google.com/detail/json-crack/hbaeglefdflnhodchjiaphmheaojikhh"
-          rel="noopener"
-          target="_blank"
-        >
-          <StyledToolElement title="Get Chrome Extension">
-            <FaChrome size="20" />
-          </StyledToolElement>
-        </Link>
+        {/* The Chrome extension link that used to sit here is gone with the rest of the
+            extension sweep: this fork deleted apps/chrome-extension and scrubbed the
+            navbar, footer and README references, and since the editor now renders at the
+            site root this toolbar is the first thing a visitor sees. */}
         <Link href="https://github.com/AykutSarac/jsoncrack.com" rel="noopener" target="_blank">
           <StyledToolElement title="GitHub">
             <FaGithub size="20" />

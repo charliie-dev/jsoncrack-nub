@@ -14,6 +14,17 @@ export interface SmartColorSchemeManagerOptions {
  * - For editor paths: Uses dynamic behavior with localStorage persistence and per-tab independence
  * - For other paths: Forces light theme
  */
+/**
+ * Whether a pathname is one of the dynamic-theme routes.
+ *
+ * Exported so `_app` can force the light scheme when navigating onto a static page
+ * without duplicating the matching rule. Note the prefix test compares against
+ * `${path}/`, so a "/" entry matches the site root exactly and nothing else.
+ */
+export function isDynamicColorSchemePath(pathname: string, dynamicPaths: string[]) {
+  return dynamicPaths.some(path => pathname === path || pathname.startsWith(`${path}/`));
+}
+
 export function smartColorSchemeManager({
   key,
   getPathname,
@@ -23,10 +34,7 @@ export function smartColorSchemeManager({
   let currentColorScheme: MantineColorScheme | null = null;
 
   // Helper function to check if current path should use dynamic behavior
-  const shouldUseDynamicBehavior = () => {
-    const pathname = getPathname();
-    return dynamicPaths.some(path => pathname === path || pathname.startsWith(`${path}/`));
-  };
+  const shouldUseDynamicBehavior = () => isDynamicColorSchemePath(getPathname(), dynamicPaths);
 
   return {
     get: defaultValue => {
