@@ -1268,222 +1268,41 @@ git commit -m "feat(canvas): tune elk spacing and route edges orthogonally"
 
 ---
 
-### Task 8: row-anchored ports
+### Task 8: row-anchored ports（已調查，退為後續 slice）
 
-這個 task 的第一步是驗證假設，不是實作。reaflow 鎖在 5.4.1，如果它不把 `fromPort` 交給 ELK，或 `elk.portConstraints` 必須下在 node 層而非 graph 層，整個 task 會靜默無效。驗證失敗就停下來回報，不要硬做。
+**狀態：不執行。** spike 的結論是這個 task 的核心假設不成立，2026-08-05 與使用者確認後退成後續
+slice。Task 1 到 7 與 9 不受影響，已全部交付。
 
-**Files:**
-- Modify: `packages/jsoncrack-react/src/types.ts:11-26`
-- Modify: `packages/jsoncrack-react/src/parser.ts:26-127`
-- Modify: `packages/jsoncrack-react/src/JSONCrackComponent.tsx`（`layoutOptions` 加 `portConstraints`）
-- Test: `packages/jsoncrack-react/src/__tests__/parser.test.ts`（既有檔案，新增 describe 區塊）
+#### spike 結果
 
-**Interfaces:**
-- Consumes: Task 3 的 `NODE_DIMENSIONS`
-- Produces: `PortData { id: string; width: number; height: number; side: "EAST"; y: number }`；`NodeData.ports?: PortData[]`；`EdgeData.fromPort?: string`
+原本的計畫是給每個容器 row 一個 port，設 `elk.portConstraints: "FIXED_POS"`，讓 ELK 把邊的起點
+放在我們算的 y 上。讀 `reaflow@5.4.1` 的 `mapNode` 之後確認這條路走不通：
 
-- [ ] **Step 1: Spike，先確認 reaflow 5.4.1 會把 port 交給 ELK**
-
-手動改一份最小 JSON 的節點資料，在 `JSONCrackComponent` 的 `visibleNodes` 之後暫時硬塞一個 port 與 `fromPort`，加上 `elk.portConstraints: "FIXED_POS"`，跑 dev server 看邊的起點是否落在指定的 y 上。
-
-Run: `nub run --filter www dev`，貼 `{"a":{"b":1},"c":{"d":2}}`
-Expected: 兩條邊的起點分別落在第一列與第二列的高度，而不是節點右緣中央
-
-若起點沒有變化，把 `elk.portConstraints` 改下在 node 的 `layoutOptions` 上再試一次。兩種都無效就把這個 spike 的觀察寫進 plan 並停止 Task 8，Task 1 到 7 的成果不受影響。確認可行後把 spike 的臨時改動全部還原，再進 Step 2。
-
-- [ ] **Step 2: Write the failing test**
-
-在 `packages/jsoncrack-react/src/__tests__/parser.test.ts` 末尾加入：
-
-```ts
-import { NODE_DIMENSIONS } from "../nodeDimensions";
-
-describe("parseGraph ports", () => {
-  it("gives every container row a port anchored to that row", () => {
-    const { nodes, edges } = parseGraph(
-      JSON.stringify({ name: "x", author: { email: "a@b.c" }, bugs: { url: "u" } })
-    );
-
-    const root = nodes.find(node => node.path?.length === 0);
-    expect(root?.ports).toHaveLength(2);
-
-    const authorRowIndex = root!.text.findIndex(row => row.key === "author");
-    const authorPort = root!.ports![0];
-
-    expect(authorPort.y).toBe(
-      NODE_DIMENSIONS.HEADER_HEIGHT +
-        authorRowIndex * NODE_DIMENSIONS.ROW_HEIGHT +
-        NODE_DIMENSIONS.ROW_HEIGHT / 2
-    );
-    expect(authorPort.side).toBe("EAST");
-
-    const authorEdge = edges.find(edge => edge.text === "author");
-    expect(authorEdge?.fromPort).toBe(authorPort.id);
-  });
-
-  it("gives no port to a row that has no children", () => {
-    const { nodes } = parseGraph(JSON.stringify({ name: "x", version: "1" }));
-    const root = nodes.find(node => node.path?.length === 0);
-
-    expect(root?.ports ?? []).toHaveLength(0);
-  });
-
-  it("gives one port per array element edge", () => {
-    const { nodes, edges } = parseGraph(JSON.stringify({ workspaces: ["apps/*", "packages/*"] }));
-    const root = nodes.find(node => node.path?.length === 0);
-
-    expect(root?.ports).toHaveLength(2);
-
-    const portIds = root!.ports!.map(port => port.id);
-    const arrayEdges = edges.filter(edge => edge.text === "workspaces");
-
-    expect(arrayEdges).toHaveLength(2);
-    for (const edge of arrayEdges) {
-      expect(portIds).toContain(edge.fromPort);
-    }
-  });
-
-  it("anchors both array element ports to the same row", () => {
-    const { nodes } = parseGraph(JSON.stringify({ workspaces: ["apps/*", "packages/*"] }));
-    const root = nodes.find(node => node.path?.length === 0);
-
-    expect(root!.ports![0].y).toBe(root!.ports![1].y);
-  });
-
-  it("keeps port ids unique across the whole graph", () => {
-    const { nodes } = parseGraph(
-      JSON.stringify({ a: { x: 1 }, b: { y: 2 }, c: [{ z: 3 }, { w: 4 }] })
-    );
-    const allIds = nodes.flatMap(node => node.ports?.map(port => port.id) ?? []);
-
-    expect(new Set(allIds).size).toBe(allIds.length);
-  });
-});
+```js
+ports: node.ports ? node.ports.map(port => ({
+  id: port.id,
+  properties: { ...port, "port.side": port.side, "port.alignment": port.alignment || "CENTER" }
+})) : []
 ```
 
-- [ ] **Step 3: Run test to verify it fails**
+reaflow 只把 `id` 與 `properties` 交給 ELK。**port 的 `x` / `y` / `width` / `height` 沒有被提到
+ELK port 物件的頂層**，而 ELK 讀座標讀的正是頂層欄位，不是 properties。所以 `FIXED_POS` 沒有座標
+可用。
 
-Run: `nub run --filter jsoncrack-react test`
-Expected: FAIL，`root?.ports` 是 undefined
+另外兩件在同一次調查中確認的事，未來若重啟這個 slice 會用到：
 
-- [ ] **Step 4: Write minimal implementation**
+1. `portConstraints: "FIXED_ORDER"` 是 reaflow 硬編碼在 **node 層** 的 `nodeLayoutOptions`。因為
+   它後面接 `...node.layoutOptions || {}`，所以只有 `NodeData.layoutOptions` 覆蓋得掉，下在 graph
+   層的 `layoutOptions` 無效。
+2. `EdgeProps.sections: EdgeSections[]` 存在，所以在 `CustomEdge` 裡後處理邊的幾何是可行的。
 
-`packages/jsoncrack-react/src/types.ts` 加入：
+#### 未來重啟時的三條路
 
-```ts
-export interface PortData {
-  id: string;
-  width: number;
-  height: number;
-  /** Edges leave from the node's right-hand side; elk needs the side declared explicitly. */
-  side: "EAST";
-  /** Offset from the node's top edge, measured to the middle of the owning row. */
-  y: number;
-}
-```
-
-`NodeData` 加 `ports?: PortData[]`，`EdgeData` 加 `fromPort?: string`。
-
-`packages/jsoncrack-react/src/parser.ts`，在 `traverse` 內建立 `ports` 陣列，並在三處 push edge 時一併建立 port。port 的 y 用共用的 helper 算，讓公式只有一份：
-
-```ts
-import { NODE_DIMENSIONS } from "./nodeDimensions";
-import type { EdgeData, GraphData, NodeData, NodeRow, PortData } from "./types";
-
-/**
- * Vertical centre of a row, measured from the node's top edge.
- *
- * Must agree with calculateNodeSize's height and ObjectNode's rowPosition, all three of
- * which start the body below HEADER_HEIGHT. If they disagree every edge is drawn one
- * header off, with no error anywhere.
- */
-const portOffsetForRow = (rowIndex: number) =>
-  NODE_DIMENSIONS.HEADER_HEIGHT + rowIndex * NODE_DIMENSIONS.ROW_HEIGHT + NODE_DIMENSIONS.ROW_HEIGHT / 2;
-
-const createPort = (nodeId: string, rowIndex: number, sequence: number): PortData => ({
-  id: `port-${nodeId}-${rowIndex}-${sequence}`,
-  width: 1,
-  height: 1,
-  side: "EAST",
-  y: portOffsetForRow(rowIndex),
-});
-```
-
-`traverse` 內宣告 `const ports: PortData[] = [];`，然後：
-
-array 型 row（原第 93 到 100 行）改成先 push row、取得 rowIndex，再對每個 target 建立 port：
-
-```ts
-        const rowIndex = text.length - 1;
-
-        targetIds.forEach((targetId, sequence) => {
-          const port = createPort(id, rowIndex, sequence);
-          ports.push(port);
-
-          edges.push({
-            id: String(edgeId++),
-            from: id,
-            to: targetId,
-            text: key,
-            fromPort: port.id,
-          });
-        });
-```
-
-object 型 row（原第 112 到 119 行）：
-
-```ts
-        if (objectNodeId) {
-          const port = createPort(id, text.length - 1, 0);
-          ports.push(port);
-
-          edges.push({
-            id: String(edgeId++),
-            from: id,
-            to: objectNodeId,
-            text: key,
-            fromPort: port.id,
-          });
-        }
-```
-
-root array 的元素邊（原第 30 到 37 行）在 traverse 開頭，那時父節點的 ports 陣列不在作用域內，而該節點只有一列，rowIndex 固定為 0。改成把 port 建在父節點上需要在父層處理，所以這條邊維持沒有 `fromPort`，root array 節點只有一列，ELK 落在節點右緣中央就是該列中央。在該處加註解說明為何這條路徑不需要 port。
-
-兩處 `nodes.push` 都加上 ports，空陣列時不要帶欄位：
-
-```ts
-        ...(ports.length > 0 && { ports }),
-```
-
-`JSONCrackComponent.tsx` 的 `layoutOptions` 加一行：
-
-```ts
-  "elk.portConstraints": "FIXED_POS",
-```
-
-- [ ] **Step 5: Run test to verify it passes**
-
-Run: `nub run --filter jsoncrack-react test`
-Expected: PASS
-
-- [ ] **Step 6: 視覺確認**
-
-```bash
-nub run --filter jsoncrack-react build
-nub run --filter www dev
-```
-
-貼上這份 repo 的 `package.json`，確認每條邊的起點與它對應的那一列對齊，尤其 `scripts` 與 `devEngines` 這種位置靠下的列。再切一次四個 `layoutDirection` 確認沒有邊穿過節點。
-
-- [ ] **Step 7: Commit**
-
-```bash
-nub run -r lint
-git add packages/jsoncrack-react/src
-git commit -m "feat(canvas): anchor edges to the row they leave from"
-```
-
----
+| 方案 | 效果 | 代價 |
+|---|---|---|
+| `FIXED_ORDER` 加 `port.index` | 同一父節點的多條邊按 row 順序沿右側分開，ELK 自行平均分佈 | 不精確對齊 row，只是比全部擠在中點好 |
+| 在 `CustomEdge` 後處理 `sections` | 精確對齊 row 高度 | 要自己維持直角轉折，邊線可能穿過節點 |
+| 不用 reaflow，直接驅動 elkjs | 完全控制 port 座標 | 等於重寫 canvas 層 |
 
 ### Task 9: apps/www 的 styled-components 與 Mantine 主題
 
@@ -1708,11 +1527,57 @@ git commit -m "feat(www): move styled-components and mantine themes onto catppuc
 
 ---
 
-## Plan A 完成後的狀態
+## 執行結果（2026-08-05）
 
-- canvas 與 apps 的顏色都來自 `packages/jsoncrack-react/src/catppuccin.ts` 一處
-- 節點有依 key 上色的 header，尺寸常數與 port 偏移共用同一組數值
-- ELK 走正交路由，邊從對應的列出發
-- spec 的第 1、2、5 塊完成
+Task 1 到 7 與 Task 9 全部完成，97 個單元測試通過，`nub run -r build` 綠，static export 產物確認
+含 Mocha 與 Latte 兩組色值。Task 8 已調查後退為後續 slice，見該節。
 
-未完成的是 spec 的第 3 塊（PaneBar 與空狀態）與第 4 塊（schema 驗證），全部在 `apps/www`，由 Plan B 處理。Plan B 不依賴 Plan A 的任何介面，兩份可以並行，唯一的交集是 `apps/www/src/features/editor/` 底下的檔案，所以並行時不要讓兩邊同時改 `BottomBar.tsx`。
+分支 `feat/catppuccin-canvas`，commits：
+
+| Task | Commit |
+|---|---|
+| 1 色票模組 | `775761ed` |
+| 2 accentForKey / mixHex | `9308c07c` |
+| 3 尺寸常數收斂 | `85c357ff` |
+| 4 canvas theme | `9eb968c0` |
+| 5 nodeHeaderLabel | `32f7e356` |
+| 6 節點 header 渲染 | `c90d5596` |
+| 7 ELK 參數 | `64ae7361` |
+| 9 apps 主題 | `36283483` |
+| 追加修正 | `b31833f6` |
+
+### 計畫與實際的四處偏差
+
+上面的 task 內容保留當時的計畫原貌，以下是執行時發現與它不符的地方。
+
+1. **Task 9 Step 2 說可以刪掉 `nodeColors`，這是錯的。** 它不是 canvas theme 的重複副本：
+   `TreeView/Label.tsx` 與 `TreeView/Value.tsx` 在讀 `theme.NODE_COLORS`，而且需要 `PARENT_OBJ`
+   與 `PARENT_ARR` 這兩個 canvas 沒有的欄位。實際做法是保留這個 key 並改由色盤組出。
+
+2. **色碼比對是十處，不是 Task 9 Step 3 列的七處。** 漏掉的是 `Toolbar/SearchInput.tsx` 的兩處
+   （已在 Plan A 修掉，那裡的紅色本身也在色盤外，改用 `theme.CRIMSON` 與
+   `theme.INTERACTIVE_NORMAL` 後連亮暗分支都不需要）以及 `BottomBar.tsx:71`（歸 Plan B）。
+
+3. **`next build` 一度整個失敗，plan 完全沒有預期到。** `_app.tsx` 與 constants 從 package barrel
+   import 之後，Next.js 收集 page data 時會在 server 端載入那些模組，barrel 又 re-export canvas
+   元件，於是 reaflow 經過 nub 的 module preload 時丟出
+   `TypeError: Cannot read properties of undefined (reading 'match')`。TypeScript 與 client compile
+   都通過，只在 static export 階段爆。修法是新增 `jsoncrack-react/palette` 子路徑入口，只含色票、
+   accent helpers 與節點尺寸，不碰 React 與 renderer，建置後 0.22 kB。`vite.config.ts` 因此改成
+   多 entry。
+
+4. **`layoutOptions` 移到獨立的 `src/layoutOptions.ts`**，plan 原本說從 `JSONCrackComponent` 具名
+   匯出。測試若 import 那個元件會連帶載入 CSS module 與 reaflow，在 vitest 的 node 環境下無法解析。
+
+### 尚未驗收的項目
+
+以下需要人眼確認，程式碼已交付但數值可能要再調：
+
+- Task 7 表格裡的四個間距值是起始值。四個 `layoutDirection` 下的觀感尚未逐一確認
+- Task 9 Step 5 的六項手動驗收清單
+
+### 後續工作
+
+- Task 8 的 row-anchored ports，三條替代路徑見該節
+- Plan B（`2026-08-05-schema-validation-and-pane.md`）的 PaneBar 與 schema 驗證，其中會處理
+  `BottomBar.tsx:71` 這第十處色碼比對

@@ -84,6 +84,11 @@
 `constants/theme.ts:20` 的 `nodeColors` 與 package 的 `theme.ts` 定義同一組節點色，而 canvas 實際
 上已不吃前者。這份重複必須在這次收掉，否則兩邊色值會漂移。
 
+套件對外開兩個入口。根路徑 `jsoncrack-react` 帶 canvas 元件，`jsoncrack-react/palette` 只有色票、
+accent helpers 與節點尺寸，不碰 React 也不碰 renderer。host 端在 server 會執行到的模組
+（`_app.tsx`、`constants/*`）一律走後者：從根路徑 import 會讓 Next.js 收集 page data 時把 reaflow
+載進 server，`next build` 會在 static export 階段失敗。
+
 **新檔 `packages/jsoncrack-react/src/catppuccin.ts`**
 
 匯出 `mocha` 與 `latte` 兩組完整具名色，使用 Catppuccin 官方名稱：`base`、`mantle`、`crust`、
@@ -106,7 +111,12 @@ accent（`rosewater`、`flamingo`、`pink`、`mauve`、`red`、`maroon`、`peach
 
 **改 `apps/www/src/constants/theme.ts`**
 
-刪除 `nodeColors`，改從 `jsoncrack-react` 匯入。`darkTheme` 與 `lightTheme` 的語意 token 逐一映射
+`nodeColors` 保留但改由色盤組出。原本以為它是 canvas theme 的重複副本可以直接刪，實際上
+`TreeView/Label.tsx` 與 `TreeView/Value.tsx` 在讀 `theme.NODE_COLORS`，而且需要 `PARENT_OBJ` 與
+`PARENT_ARR` 這兩個 canvas 沒有的欄位。重疊的 key 刻意解析到 canvas 用的同一組色，讓同一個值在兩
+個檢視裡讀起來一致。
+
+色票從 **`jsoncrack-react/palette`** 匯入，不是 package 根路徑。`darkTheme` 與 `lightTheme` 的語意 token 逐一映射
 到 mocha 與 latte。`fixedColors` 那批 Discord 色一併映射進色盤：`BLURPLE` 對 `blue`、`CRIMSON` 對
 `red`、`ORANGE` 對 `peach`、`SEAGREEN` 對 `green`、`DANGER` 與 `TEXT_DANGER` 對 `red` 與 `maroon`。
 不映射的話畫面上會冒出不屬於 Catppuccin 的顏色。
@@ -117,15 +127,17 @@ Mantine 的 `colors` 需要 10 階陣列，以 Catppuccin accent 為中心生成
 `mauve`。`Toaster` 的 `toastOptions.style` 目前硬編 `#4D4D4D` 與 `#B9BBBE`，改成 `surface0` 與
 `text`。
 
-**八處色碼比對必須一起改掉**
+**十處色碼比對必須一起改掉**
 
-`theme.BACKGROUND_SECONDARY === "#f2f3f5"` 這個判斷式出現八次，換色盤後全部會選錯值：
+`theme.BACKGROUND_SECONDARY === "#f2f3f5"` 這個判斷式出現十次，換色盤後全部會選錯值：
 
 - `GraphView/index.tsx:33`，節點的 drop-shadow
 - `GraphView/Toolbar/index.tsx` 的 `glassSurface` 共五處：背景（28 附近）、邊框（34）、inset 高光
   （39）、近距陰影（44）、遠距陰影（47）
 - `GraphView/Toolbar/index.tsx:78`，`StyledToolbar` 的 divider 邊框
-- `BottomBar.tsx:71`，pane bar 按鈕的 hover 背景
+- `Toolbar/SearchInput.tsx` 的 `Counter` 兩處。這兩處的紅色 `#dc2626` / `#f87171` 本身也在色盤
+  外，改用 `theme.CRIMSON` 與 `theme.INTERACTIVE_NORMAL` 之後連亮暗分支都不需要
+- `BottomBar.tsx:71`，pane bar 按鈕的 hover 背景。這一處歸 Plan B，因為它會重寫該檔案
 
 修法是在 theme 物件加一個 `IS_DARK: boolean`，七處直接讀它。不逐處改成 `$dark` prop：五處在共用的
 `glassSurface` css helper 裡，加 prop 就得讓每個使用者往下傳。放進 theme 之後也不可能再漂移。
