@@ -131,7 +131,7 @@ export const parseGraph = (
             id: String(edgeId++),
             from: id,
             to: targetId,
-            text: key,
+            text: "",
             fromPort: port.id,
           });
         });
@@ -154,7 +154,7 @@ export const parseGraph = (
             id: String(edgeId++),
             from: id,
             to: objectNodeId,
-            text: key,
+            text: "",
             fromPort: port.id,
           });
         }

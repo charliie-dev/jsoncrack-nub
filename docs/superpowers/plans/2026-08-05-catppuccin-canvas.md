@@ -1579,12 +1579,42 @@ Task 1 到 7 與 Task 9 全部完成，97 個單元測試通過，`nub run -r bu
 4. **`layoutOptions` 移到獨立的 `src/layoutOptions.ts`**，plan 原本說從 `JSONCrackComponent` 具名
    匯出。測試若 import 那個元件會連帶載入 CSS module 與 reaflow，在 vitest 的 node 環境下無法解析。
 
+### 驗收後的追加工作
+
+使用者逐項在瀏覽器驗收後提出的對齊需求，都已交付：
+
+| 項目 | 做法 |
+|---|---|
+| canvas 背景細點 | 四道交叉 gradient 換成單一 `radial-gradient`；grid 色從 `mantle` 提到 `surface0`，否則點在 `crust` 上看不見 |
+| canvas 外框 | `LiveEditor` 加 10px 留白與圓角內框 |
+| 驗證狀態徽章 | 實心圓底加符號，符號色用 `BACKGROUND_PRIMARY` 而非白色，讓 Latte 下也有對比 |
+| 格式選單彩色 | accent 與 icon 定義在 `file.enum.ts`，下拉與觸發鈕共用 |
+| 節點行高 | `ROW_HEIGHT` 30→26、`HEADER_HEIGHT` 36→30，並改由 CSS 變數發佈，消除 JS 與 CSS 各持一份的耦合 |
+| 根節點檔名 | 新增 `useFile.documentName`。原本以為可用 `fileData`，但那是雲端文件的殘留，這個 fork 從未寫入 |
+| 底部檢視分頁 | Graph / Tree 移到 canvas 下方，移除頂部 View 選單避免雙入口 |
+| 移除邊上的文字 | key 名稱在來源列與目標 header 都已存在，且 ELK 會為 label 預留層間空間 |
+| 邊的圓角 | 自訂 path generator，保留正交直線段只軟化轉角，半徑上限為相鄰較短線段的一半 |
+
+ELK 最終參數：`edgeRouting: ORTHOGONAL`、層間 50、同層 14、邊間 10、邊與節點 16，無 `edgeLabel`。
+
+### 一個代價高昂的陷阱，值得記住
+
+把 `EdgeData.text` 改成 `null` 讓整個 canvas 停在 loading spinner。reaflow 會把完整的
+`NodeData` 與 `EdgeData` spread 進 ELK 的 `properties`，而 **ELK 的 JSON importer 拒絕
+properties 裡的任何 null**，錯誤是 `Severe implementation error in the Json to ElkGraph
+importer`，不指出欄位。
+
+定位方式是把 `parseGraph` 的輸出直接餵給 elkjs 逐層剝離。過程中還被自己的重現誤導一次：把
+`node.text`（物件陣列）當 label text 傳，重現出一個假的錯誤；reaflow 其實會先過 `ellipsize`，
+那對物件陣列回傳空字串。
+
+現有兩道防線：`parser.test.ts` 斷言 node 與 edge 都不含 null 值，以及 `EdgeData.text` 的型別移除
+`| null`。`calculateNodeSize` 另有有限值防呆，NaN 寬度會以相同方式炸掉 ELK。
+
 ### 尚未驗收的項目
 
-以下需要人眼確認，程式碼已交付但數值可能要再調：
-
-- Task 7 表格裡的四個間距值是起始值。四個 `layoutDirection` 下的觀感尚未逐一確認
-- Task 9 Step 5 的六項手動驗收清單
+- 四個 `layoutDirection`（`RIGHT` / `LEFT` / `DOWN` / `UP`）下的觀感。間距只在預設的 `RIGHT`
+  下調過，其餘三個方向未逐一確認
 
 ### 後續工作
 

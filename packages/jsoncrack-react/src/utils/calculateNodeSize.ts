@@ -65,6 +65,35 @@ const maybeClearCache = () => {
   lastCacheClearAt = Date.now();
 };
 
+/** Fallbacks used when measurement produces something ELK cannot lay out. */
+const SAFE_SIZE = {
+  width: 120,
+  height: NODE_DIMENSIONS.PARENT_HEIGHT + NODE_DIMENSIONS.HEADER_HEIGHT,
+};
+
+/**
+ * Guarantee a finite size.
+ *
+ * A NaN or Infinity here does not fail where it is produced: it travels into ELK, which
+ * rejects the whole layout with "Severe implementation error in the Json to ElkGraph
+ * importer" and no indication of which node caused it. The canvas then sits on its
+ * spinner forever. Substituting a usable number keeps the graph rendering, and the warning
+ * names the input so the real cause is findable.
+ */
+const clampToFinite = (size: Size, text: Text, headerLabel?: string) => {
+  if (Number.isFinite(size.width) && Number.isFinite(size.height)) return;
+
+  console.warn("jsoncrack: node measured to a non-finite size, falling back", {
+    width: size.width,
+    height: size.height,
+    headerLabel,
+    text: JSON.stringify(text).slice(0, 120),
+  });
+
+  if (!Number.isFinite(size.width)) size.width = SAFE_SIZE.width;
+  if (!Number.isFinite(size.height)) size.height = SAFE_SIZE.height;
+};
+
 /**
  * Measure a node.
  *
@@ -93,6 +122,8 @@ export const calculateNodeSize = (text: Text, isParent = false, headerLabel?: st
   }
 
   if (sizes.width > 700) sizes.width = 700;
+
+  clampToFinite(sizes, text, headerLabel);
 
   sizeCache.set(cacheKey, sizes);
   return sizes;

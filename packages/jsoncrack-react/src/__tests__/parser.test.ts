@@ -39,7 +39,9 @@ describe("parseGraph", () => {
     const edge = result.edges[0];
     expect(byId.has(edge.from)).toBe(true);
     expect(byId.has(edge.to)).toBe(true);
-    expect(edge.text).toBe("user");
+    // Edges carry no label: the key is already on the source row and the target header.
+    // Empty rather than null, which ELK's importer rejects; see EdgeData.text.
+    expect(edge.text).toBe("");
     expect(byId.get(edge.to)?.text).toEqual([{ key: "name", value: "Ada", type: "string" }]);
   });
 
@@ -59,7 +61,7 @@ describe("parseGraph", () => {
 
     result.edges.forEach(edge => {
       expect(edge.from).toBe(rootId);
-      expect(edge.text).toBe("fruits");
+      expect(edge.text).toBe("");
     });
 
     const childValues = result.edges.map(e => byId.get(e.to)?.text[0].value);
@@ -144,7 +146,9 @@ describe("parseGraph ports", () => {
   it("points the edge at the port belonging to its row", () => {
     const { nodes, edges } = parseGraph(JSON.stringify({ author: { email: "a@b.c" } }));
     const root = nodes.find(node => node.path?.length === 0);
-    const authorEdge = edges.find(edge => edge.text === "author");
+    // Identified structurally rather than by label: edges carry none, and a key name
+    // would not be unique across a document anyway.
+    const authorEdge = edges.find(edge => edge.from === root!.id);
 
     expect(authorEdge?.fromPort).toBe(root!.ports![0].id);
   });
@@ -164,7 +168,7 @@ describe("parseGraph ports", () => {
     expect(root!.ports![0].y).toBe(root!.ports![1].y);
 
     const portIds = root!.ports!.map(port => port.id);
-    const arrayEdges = edges.filter(edge => edge.text === "workspaces");
+    const arrayEdges = edges.filter(edge => edge.from === root!.id);
     expect(arrayEdges).toHaveLength(2);
     for (const edge of arrayEdges) {
       expect(portIds).toContain(edge.fromPort);
@@ -178,5 +182,37 @@ describe("parseGraph ports", () => {
     const allIds = nodes.flatMap(node => node.ports?.map(port => port.id) ?? []);
 
     expect(new Set(allIds).size).toBe(allIds.length);
+  });
+});
+
+describe("elk compatibility", () => {
+  /**
+   * reaflow spreads the whole NodeData and EdgeData into ELK's `properties`, and ELK's
+   * JSON importer rejects a null value anywhere in there. It fails with "Severe
+   * implementation error in the Json to ElkGraph importer", names no field, and leaves the
+   * canvas spinning. Setting EdgeData.text to null once cost an afternoon.
+   */
+  it("emits no null values on nodes or edges", () => {
+    const { nodes, edges } = parseGraph(
+      JSON.stringify({
+        name: "x",
+        nested: { deep: { deeper: 1 } },
+        list: ["a", "b"],
+        nullValue: null,
+        objects: [{ id: 1 }, { id: 2 }],
+      })
+    );
+
+    const nullKeys = (record: Record<string, unknown>) =>
+      Object.entries(record)
+        .filter(([, value]) => value === null)
+        .map(([key]) => key);
+
+    for (const node of nodes) {
+      expect(nullKeys(node as unknown as Record<string, unknown>)).toEqual([]);
+    }
+    for (const edge of edges) {
+      expect(nullKeys(edge as unknown as Record<string, unknown>)).toEqual([]);
+    }
   });
 });

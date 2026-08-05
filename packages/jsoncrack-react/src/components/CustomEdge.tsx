@@ -3,6 +3,7 @@ import type { ViewPort } from "react-zoomable-ui";
 import type { EdgeProps } from "reaflow";
 import { Edge } from "reaflow";
 import type { EdgeData } from "../types";
+import { roundedOrthogonalPath } from "../utils/roundedOrthogonalPath";
 
 type QueryRoot = {
   querySelector: (selector: string) => Element | null;
@@ -60,11 +61,12 @@ const CustomEdgeBase = ({ viewPort, edgeTargetById, hostElement, ...props }: Cus
         strokeWidth: 1.5,
       }}
       {...props}
-      // After the spread so it cannot be overridden. reaflow defaults to "curved", which
-      // runs ELK's bend points through curveBundle.beta(1) and rounds the right angles
-      // away, so setting elk.edgeRouting to ORTHOGONAL had no visible effect. "linear"
-      // draws straight segments between the points ELK actually produced.
-      interpolation="linear"
+      // After the spread so it cannot be overridden. reaflow's own options are both wrong
+      // here: "curved" runs ELK's bend points through curveBundle and loses the orthogonal
+      // routing, while "linear" keeps it but leaves the corners sharp. Passing a function
+      // makes reaflow use it as the path generator, so the straight runs survive and only
+      // the corners are softened.
+      interpolation={roundedOrthogonalPath}
     />
   );
 };
