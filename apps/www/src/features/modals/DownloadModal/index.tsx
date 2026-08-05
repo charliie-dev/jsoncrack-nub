@@ -14,43 +14,22 @@ import { toBlob, toJpeg, toPng, toSvg } from "html-to-image";
 import { event as gaEvent } from "nextjs-google-analytics";
 import toast from "react-hot-toast";
 import { FiCopy, FiDownload } from "react-icons/fi";
+import {
+  defaultExportBackground,
+  EXPORT_SWATCHES,
+  exportBaseName,
+  exportFileName,
+  IMAGE_FORMATS,
+  type ImageFormat,
+} from "../../../lib/utils/exportImage";
+import useConfig from "../../../store/useConfig";
+import useFile from "../../../store/useFile";
 
-enum Extensions {
-  SVG = "svg",
-  PNG = "png",
-  JPEG = "jpeg",
-}
-
-const getDownloadFormat = (format: Extensions) => {
-  switch (format) {
-    case Extensions.SVG:
-      return toSvg;
-    case Extensions.PNG:
-      return toPng;
-    case Extensions.JPEG:
-      return toJpeg;
-  }
+const RENDERERS: Record<ImageFormat, typeof toPng> = {
+  png: toPng,
+  jpeg: toJpeg,
+  svg: toSvg,
 };
-
-const swatches = [
-  "#B80000",
-  "#DB3E00",
-  "#FCCB00",
-  "#008B02",
-  "#006B76",
-  "#1273DE",
-  "#004DCF",
-  "#5300EB",
-  "#EB9694",
-  "#FAD0C3",
-  "#FEF3BD",
-  "#C1E1C5",
-  "#BEDADC",
-  "#C4DEF6",
-  "#BED3F3",
-  "#D4C4FB",
-  "transparent",
-];
 
 function downloadURI(uri: string, name: string) {
   const link = document.createElement("a");
@@ -62,17 +41,38 @@ function downloadURI(uri: string, name: string) {
   document.body.removeChild(link);
 }
 
-const getExportElement = () =>
-  (document.querySelector(".jsoncrack-canvas") as HTMLElement | null) ??
-  (document.querySelector("svg[id*='ref']") as HTMLElement | null);
+/**
+ * The element the image is taken from.
+ *
+ * reaflow's canvas, not the wrapper around it: the wrapper carries the dot grid, which is
+ * texture for working on screen and clutter in an exported image, and the wrapper is also
+ * the size of the viewport rather than of the graph. The canvas is sized to the laid-out
+ * graph, so what comes out is the whole diagram whatever the camera happens to be showing.
+ */
+const getExportElement = () => document.querySelector<HTMLElement>(".jsoncrack-canvas");
 
 export const DownloadModal = ({ opened, onClose }: ModalProps) => {
-  const [extension, setExtension] = React.useState(Extensions.PNG);
+  const darkmodeEnabled = useConfig(state => state.darkmodeEnabled);
+  const documentName = useFile(state => state.documentName);
+
+  const [extension, setExtension] = React.useState<ImageFormat>("png");
   const [fileDetails, setFileDetails] = React.useState({
-    filename: "jsoncrack.com",
-    backgroundColor: "#FFFFFF",
+    filename: "",
+    backgroundColor: defaultExportBackground(darkmodeEnabled),
     quality: 1,
   });
+
+  // Every modal is mounted for the life of the app, so initial state is whatever was true
+  // at start-up — before any document was loaded or the theme was touched. Re-seeding on
+  // open is what makes the name follow the document and the background follow the canvas.
+  React.useEffect(() => {
+    if (!opened) return;
+    setFileDetails(current => ({
+      ...current,
+      filename: exportBaseName(documentName),
+      backgroundColor: defaultExportBackground(darkmodeEnabled),
+    }));
+  }, [opened, documentName, darkmodeEnabled]);
 
   const clipboardImage = async () => {
     try {
@@ -130,9 +130,9 @@ export const DownloadModal = ({ opened, onClose }: ModalProps) => {
         skipFonts: true,
       };
 
-      const dataURI = await getDownloadFormat(extension)(imageElement, imageOptions);
+      const dataURI = await RENDERERS[extension](imageElement, imageOptions);
 
-      downloadURI(dataURI, `${fileDetails.filename}.${extension}`);
+      downloadURI(dataURI, exportFileName(fileDetails.filename, extension));
       gaEvent("download_img", { label: extension });
     } catch {
       toast.error("Failed to download image!");
@@ -146,26 +146,24 @@ export const DownloadModal = ({ opened, onClose }: ModalProps) => {
     setFileDetails({ ...fileDetails, [key]: value });
 
   return (
-    <Modal opened={opened} onClose={onClose} title="Download Image" centered>
+    <Modal opened={opened} onClose={onClose} title="Export Image" centered>
       <TextInput
-        label="File Name"
+        label="File name"
         value={fileDetails.filename}
         onChange={e => updateDetails("filename", e.target.value)}
+        rightSection={`.${extension}`}
+        rightSectionWidth={54}
         mb="lg"
       />
       <SegmentedControl
         value={extension}
-        onChange={e => setExtension(e as Extensions)}
+        onChange={value => setExtension(value as ImageFormat)}
         fullWidth
-        data={[
-          { label: "PNG", value: Extensions.PNG },
-          { label: "JPEG", value: Extensions.JPEG },
-          { label: "SVG", value: Extensions.SVG },
-        ]}
+        data={IMAGE_FORMATS.map(format => ({ label: format.toUpperCase(), value: format }))}
         mb="lg"
       />
       <ColorInput
-        label="Background Color"
+        label="Background"
         value={fileDetails.backgroundColor}
         onChange={color => updateDetails("backgroundColor", color)}
         withEyeDropper={false}
@@ -175,16 +173,18 @@ export const DownloadModal = ({ opened, onClose }: ModalProps) => {
         format="rgba"
         value={fileDetails.backgroundColor}
         onChange={color => updateDetails("backgroundColor", color)}
-        swatches={swatches}
+        swatches={EXPORT_SWATCHES}
         withPicker={false}
         fullWidth
       />
       <Divider my="xs" />
       <Group justify="right">
-        <Button leftSection={<FiCopy />} onClick={clipboardImage}>
+        {/* Default variant, so the two read as secondary and primary rather than as two
+            equally weighted choices. The download is what the dialog is for. */}
+        <Button variant="default" leftSection={<FiCopy />} onClick={clipboardImage}>
           Clipboard
         </Button>
-        <Button color="green" leftSection={<FiDownload />} onClick={exportAsImage}>
+        <Button leftSection={<FiDownload />} onClick={exportAsImage}>
           Download
         </Button>
       </Group>
