@@ -74,10 +74,11 @@ export type ParseJsonGraphResult =
 /** Parse a JSON text into a graph, returning a discriminated result instead of throwing or touching React state. */
 export const parseJsonGraph = (
   jsonText: string,
-  maxRenderableNodes: number
+  maxRenderableNodes: number,
+  rootLabel?: string
 ): ParseJsonGraphResult => {
   try {
-    const graph = parseGraph(jsonText);
+    const graph = parseGraph(jsonText, rootLabel);
     if (graph.nodes.length > maxRenderableNodes) {
       return { kind: "above-limit", total: graph.nodes.length };
     }

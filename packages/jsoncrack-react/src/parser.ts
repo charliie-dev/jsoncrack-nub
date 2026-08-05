@@ -1,12 +1,38 @@
 import { getNodePath, parseTree, type Node, type ParseError } from "jsonc-parser";
-import type { EdgeData, GraphData, NodeData, NodeRow } from "./types";
+import { NODE_DIMENSIONS } from "./nodeDimensions";
+import type { EdgeData, GraphData, NodeData, NodeRow, PortData } from "./types";
 import { calculateNodeSize } from "./utils/calculateNodeSize";
+import { DEFAULT_ROOT_LABEL, nodeHeaderLabel } from "./utils/nodeHeaderLabel";
+
+/**
+ * Vertical centre of a row, measured from the node's top edge.
+ *
+ * Shares HEADER_HEIGHT with calculateNodeSize and ObjectNode's row positioning; all three
+ * start the body below the header, and a disagreement would put every edge one header out
+ * of line with no error anywhere.
+ */
+const portOffsetForRow = (rowIndex: number) =>
+  NODE_DIMENSIONS.HEADER_HEIGHT +
+  rowIndex * NODE_DIMENSIONS.ROW_HEIGHT +
+  NODE_DIMENSIONS.ROW_HEIGHT / 2;
+
+const createPort = (nodeId: string, rowIndex: number, sequence: number): PortData => ({
+  id: `port-${nodeId}-${rowIndex}-${sequence}`,
+  width: 1,
+  height: 1,
+  side: "EAST",
+  y: portOffsetForRow(rowIndex),
+});
 
 export interface ParseGraphResult extends GraphData {
   errors: ParseError[];
 }
 
-export const parseGraph = (json: string): ParseGraphResult => {
+export const parseGraph = (
+  json: string,
+  /** Header text for the root node, needed here so its width accounts for the label. */
+  rootLabel: string = DEFAULT_ROOT_LABEL
+): ParseGraphResult => {
   const parseErrors: ParseError[] = [];
   const jsonTree = parseTree(json, parseErrors);
 
@@ -26,6 +52,7 @@ export const parseGraph = (json: string): ParseGraphResult => {
   function traverse(node: Node, parentId?: string): string | undefined {
     const id = String(nodeId++);
     const text: NodeRow[] = [];
+    const ports: PortData[] = [];
 
     if (parentId !== undefined && node.parent?.type === "array") {
       edges.push({
@@ -40,7 +67,11 @@ export const parseGraph = (json: string): ParseGraphResult => {
     const isRootArray = !node.parent || node.parent.type === "array";
 
     if (isArray && isRootArray) {
-      const { width, height } = calculateNodeSize(`[${node.children?.length ?? "0"} items]`);
+      const { width, height } = calculateNodeSize(
+        `[${node.children?.length ?? "0"} items]`,
+        false,
+        nodeHeaderLabel([], rootLabel)
+      );
 
       nodes.push({
         id,
@@ -90,12 +121,18 @@ export const parseGraph = (json: string): ParseGraphResult => {
           childrenCount: valueNode.children?.length,
         });
 
-        targetIds.forEach(targetId => {
+        const arrayRowIndex = text.length - 1;
+
+        targetIds.forEach((targetId, sequence) => {
+          const port = createPort(id, arrayRowIndex, sequence);
+          ports.push(port);
+
           edges.push({
             id: String(edgeId++),
             from: id,
             to: targetId,
             text: key,
+            fromPort: port.id,
           });
         });
       } else if (type === "object") {
@@ -110,11 +147,15 @@ export const parseGraph = (json: string): ParseGraphResult => {
         });
 
         if (objectNodeId) {
+          const port = createPort(id, text.length - 1, 0);
+          ports.push(port);
+
           edges.push({
             id: String(edgeId++),
             from: id,
             to: objectNodeId,
             text: key,
+            fromPort: port.id,
           });
         }
       } else {
@@ -162,7 +203,11 @@ export const parseGraph = (json: string): ParseGraphResult => {
     if (text.length === 0) {
       if (typeof node.value === "undefined") return undefined;
 
-      const { width, height } = calculateNodeSize(node.value as string | number);
+      const { width, height } = calculateNodeSize(
+        node.value as string | number,
+        false,
+        nodeHeaderLabel(getNodePath(node), rootLabel)
+      );
 
       nodes.push({
         id,
@@ -195,7 +240,11 @@ export const parseGraph = (json: string): ParseGraphResult => {
         displayText = `${text[0].value}`;
       }
 
-      const { width, height } = calculateNodeSize(displayText);
+      const { width, height } = calculateNodeSize(
+        displayText,
+        false,
+        nodeHeaderLabel(getNodePath(node), rootLabel)
+      );
 
       nodes.push({
         id,
@@ -204,6 +253,7 @@ export const parseGraph = (json: string): ParseGraphResult => {
         height,
         path: getNodePath(node),
         ...appendParentKey(),
+        ...(ports.length > 0 && { ports }),
       });
     }
 

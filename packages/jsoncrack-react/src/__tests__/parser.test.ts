@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { NODE_DIMENSIONS } from "../nodeDimensions";
 import { parseGraph } from "../parser";
 
 describe("parseGraph", () => {
@@ -114,5 +115,68 @@ describe("parseGraph", () => {
       expect(nodeIds.has(edge.from)).toBe(true);
       expect(nodeIds.has(edge.to)).toBe(true);
     });
+  });
+});
+
+describe("parseGraph ports", () => {
+  it("gives every container row a port in row order", () => {
+    const { nodes } = parseGraph(
+      JSON.stringify({ name: "x", author: { email: "a@b.c" }, bugs: { url: "u" } })
+    );
+    const root = nodes.find(node => node.path?.length === 0);
+
+    expect(root?.ports).toHaveLength(2);
+    expect(root?.ports?.every(port => port.side === "EAST")).toBe(true);
+  });
+
+  it("anchors each port to the middle of its row, below the header", () => {
+    const { nodes } = parseGraph(JSON.stringify({ name: "x", author: { email: "a@b.c" } }));
+    const root = nodes.find(node => node.path?.length === 0);
+    const authorRowIndex = root!.text.findIndex(row => row.key === "author");
+
+    expect(root!.ports![0].y).toBe(
+      NODE_DIMENSIONS.HEADER_HEIGHT +
+        authorRowIndex * NODE_DIMENSIONS.ROW_HEIGHT +
+        NODE_DIMENSIONS.ROW_HEIGHT / 2
+    );
+  });
+
+  it("points the edge at the port belonging to its row", () => {
+    const { nodes, edges } = parseGraph(JSON.stringify({ author: { email: "a@b.c" } }));
+    const root = nodes.find(node => node.path?.length === 0);
+    const authorEdge = edges.find(edge => edge.text === "author");
+
+    expect(authorEdge?.fromPort).toBe(root!.ports![0].id);
+  });
+
+  it("gives no ports to a node whose rows are all scalars", () => {
+    const { nodes } = parseGraph(JSON.stringify({ name: "x", version: "1" }));
+    const root = nodes.find(node => node.path?.length === 0);
+
+    expect(root?.ports).toBeUndefined();
+  });
+
+  it("gives one port per array element and anchors them to the same row", () => {
+    const { nodes, edges } = parseGraph(JSON.stringify({ workspaces: ["apps/*", "packages/*"] }));
+    const root = nodes.find(node => node.path?.length === 0);
+
+    expect(root?.ports).toHaveLength(2);
+    expect(root!.ports![0].y).toBe(root!.ports![1].y);
+
+    const portIds = root!.ports!.map(port => port.id);
+    const arrayEdges = edges.filter(edge => edge.text === "workspaces");
+    expect(arrayEdges).toHaveLength(2);
+    for (const edge of arrayEdges) {
+      expect(portIds).toContain(edge.fromPort);
+    }
+  });
+
+  it("keeps port ids unique across the whole graph", () => {
+    const { nodes } = parseGraph(
+      JSON.stringify({ a: { x: 1 }, b: { y: 2 }, c: [{ z: 3 }, { w: 4 }] })
+    );
+    const allIds = nodes.flatMap(node => node.ports?.map(port => port.id) ?? []);
+
+    expect(new Set(allIds).size).toBe(allIds.length);
   });
 });

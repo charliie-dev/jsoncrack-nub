@@ -176,7 +176,7 @@ export const JSONCrack = forwardRef<JSONCrackRef, JSONCrackProps>(
     useEffect(() => {
       setLoading(true);
       setInitialFitDone(false);
-      const result = parseJsonGraph(jsonText, maxRenderableNodes);
+      const result = parseJsonGraph(jsonText, maxRenderableNodes, rootLabel);
 
       if (result.kind === "error") {
         setNodes([]);
@@ -207,7 +207,7 @@ export const JSONCrack = forwardRef<JSONCrackRef, JSONCrackProps>(
       setEdges(graph.edges);
       callbacksRef.current.onParse?.({ nodes: graph.nodes, edges: graph.edges });
       if (graph.nodes.length === 0) setLoading(false);
-    }, [jsonText, maxRenderableNodes]);
+    }, [jsonText, maxRenderableNodes, rootLabel]);
 
     // Keep the viewport in sync with container resizes — react-zoomable-ui snapshots dimensions at creation and does not re-measure on its own.
     useEffect(() => {

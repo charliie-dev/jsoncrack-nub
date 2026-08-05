@@ -43,3 +43,33 @@ describe("calculateNodeSize", () => {
     expect(second).toEqual(first);
   });
 });
+
+describe("calculateNodeSize header width", () => {
+  it("widens the node when the header label is longer than the body", () => {
+    const withoutHeader = calculateNodeSize("apps/*");
+    const withHeader = calculateNodeSize("apps/*", false, "workspaces[0]");
+
+    expect(withHeader.width).toBeGreaterThan(withoutHeader.width);
+  });
+
+  it("leaves the width alone when the body is already wider", () => {
+    const body = "a-considerably-longer-value-than-the-header";
+    const withoutHeader = calculateNodeSize(body);
+    const withHeader = calculateNodeSize(body, false, "id");
+
+    expect(withHeader.width).toBe(withoutHeader.width);
+  });
+
+  it("does not let the header change the height", () => {
+    const withoutHeader = calculateNodeSize("short-value-a");
+    const withHeader = calculateNodeSize("short-value-b", false, "a-very-long-header-label");
+
+    expect(withHeader.height).toBe(withoutHeader.height);
+  });
+
+  it("still caps the width at 700", () => {
+    const { width } = calculateNodeSize("x", false, "y".repeat(400));
+
+    expect(width).toBeLessThanOrEqual(700);
+  });
+});

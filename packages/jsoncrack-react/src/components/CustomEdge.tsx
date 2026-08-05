@@ -60,6 +60,11 @@ const CustomEdgeBase = ({ viewPort, edgeTargetById, hostElement, ...props }: Cus
         strokeWidth: 1.5,
       }}
       {...props}
+      // After the spread so it cannot be overridden. reaflow defaults to "curved", which
+      // runs ELK's bend points through curveBundle.beta(1) and rounds the right angles
+      // away, so setting elk.edgeRouting to ORTHOGONAL had no visible effect. "linear"
+      // draws straight segments between the points ELK actually produced.
+      interpolation="linear"
     />
   );
 };

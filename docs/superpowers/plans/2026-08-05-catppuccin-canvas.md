@@ -1268,10 +1268,17 @@ git commit -m "feat(canvas): tune elk spacing and route edges orthogonally"
 
 ---
 
-### Task 8: row-anchored ports（已調查，退為後續 slice）
+### Task 8: row-anchored ports（部分完成）
 
-**狀態：不執行。** spike 的結論是這個 task 的核心假設不成立，2026-08-05 與使用者確認後退成後續
-slice。Task 1 到 7 與 9 不受影響，已全部交付。
+**狀態：做到 reaflow 允許的程度。** 原本 2026-08-05 判定核心假設不成立而退為後續 slice，同日使用者
+要求連同 ELK 調校一起處理，於是改為交付可行的那一半（commit `998e9ed8`）。
+
+實際交付：每個指向子節點的 row 宣告一個 EAST port，邊按 row 順序沿節點右緣散開，不再全部疊在同一
+點。**沒有交付**精確對齊 row 高度，原因見下。
+
+同一次還修掉一個更早的誤判：`elk.edgeRouting: "ORTHOGONAL"` 從 Task 7 起就設了，ELK 也一直產出直角
+bend points，但畫面上是曲線。reaflow 的 `Edge` 預設 `interpolation="curved"`，把那些點餵進
+`curveBundle.beta(1)` 抹成圓角。改成 `"linear"` 之後才看得到 ELK 真正算出來的折線。
 
 #### spike 結果
 
@@ -1296,13 +1303,16 @@ ELK port 物件的頂層**，而 ELK 讀座標讀的正是頂層欄位，不是 
    層的 `layoutOptions` 無效。
 2. `EdgeProps.sections: EdgeSections[]` 存在，所以在 `CustomEdge` 裡後處理邊的幾何是可行的。
 
-#### 未來重啟時的三條路
+#### 三條路，第一條已採用
 
-| 方案 | 效果 | 代價 |
+| 方案 | 效果 | 狀態 |
 |---|---|---|
-| `FIXED_ORDER` 加 `port.index` | 同一父節點的多條邊按 row 順序沿右側分開，ELK 自行平均分佈 | 不精確對齊 row，只是比全部擠在中點好 |
-| 在 `CustomEdge` 後處理 `sections` | 精確對齊 row 高度 | 要自己維持直角轉折，邊線可能穿過節點 |
-| 不用 reaflow，直接驅動 elkjs | 完全控制 port 座標 | 等於重寫 canvas 層 |
+| `FIXED_ORDER` 加 EAST port | 同一父節點的多條邊按 row 順序沿右側分開，ELK 自行決定間距 | **已採用**。不精確對齊 row，但比全部擠在中點好 |
+| 在 `CustomEdge` 後處理 `sections` | 精確對齊 row 高度 | 未做。要自己維持直角轉折，邊線可能穿過節點 |
+| 不用 reaflow，直接驅動 elkjs | 完全控制 port 座標 | 未做。等於重寫 canvas 層 |
+
+`PortData.y` 仍然記錄該 row 的實際偏移，雖然 ELK 現在讀不到它。若日後走第二或第三條路，公式已經
+和 `calculateNodeSize`、`ObjectNode` 的 row 定位共用同一個 `HEADER_HEIGHT`。
 
 ### Task 9: apps/www 的 styled-components 與 Mantine 主題
 

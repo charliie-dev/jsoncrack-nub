@@ -65,10 +65,18 @@ const maybeClearCache = () => {
   lastCacheClearAt = Date.now();
 };
 
-export const calculateNodeSize = (text: Text, isParent = false) => {
+/**
+ * Measure a node.
+ *
+ * `headerLabel` widens the result when the coloured header is longer than anything in the
+ * body. Without it a node like `workspaces[0]` whose only row is `apps/*` comes out sized
+ * for the row, and the header is clipped. Height is unaffected: the header's own height is
+ * already added inside calculateWidthAndHeight.
+ */
+export const calculateNodeSize = (text: Text, isParent = false, headerLabel?: string) => {
   maybeClearCache();
 
-  const cacheKey = `${JSON.stringify(text)}-${isParent}`;
+  const cacheKey = `${JSON.stringify(text)}-${isParent}-${headerLabel ?? ""}`;
 
   const cached = sizeCache.get(cacheKey);
   if (cached) return cached;
@@ -77,6 +85,13 @@ export const calculateNodeSize = (text: Text, isParent = false) => {
   const sizes = calculateWidthAndHeight(lines, typeof text === "string");
 
   if (isParent) sizes.width += 80;
+
+  if (headerLabel) {
+    // Measured as a single line, and bold, so it is never narrower than the real header.
+    const header = calculateWidthAndHeight(headerLabel, true);
+    sizes.width = Math.max(sizes.width, header.width);
+  }
+
   if (sizes.width > 700) sizes.width = 700;
 
   sizeCache.set(cacheKey, sizes);

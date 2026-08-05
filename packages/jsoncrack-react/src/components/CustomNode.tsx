@@ -27,6 +27,9 @@ const CustomNodeBase = ({ onNodeClick, theme, rootLabel, ...nodeProps }: CustomN
       onClick={handleNodeClick as any}
       animated={false}
       label={null as any}
+      // Ports exist to spread outgoing edges down the node's right edge in row order, not
+      // to be interacted with. Passing null suppresses reaflow's default port circles.
+      port={null as any}
       onEnter={event => {
         event.currentTarget.style.stroke = "#3B82F6";
       }}
