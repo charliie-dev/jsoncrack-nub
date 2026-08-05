@@ -62,7 +62,9 @@ const buildTheme = (palette: CatppuccinPalette): JSONCrackTheme => ({
   BACKGROUND_MODIFIER_ACCENT: palette.surface0,
   TEXT_POSITIVE: palette.green,
   GRID_BG_COLOR: palette.crust,
-  GRID_COLOR_PRIMARY: palette.mantle,
+  // The grid is dots on crust, so this has to clear the background by more than the one
+  // step mantle gave it or the texture is invisible.
+  GRID_COLOR_PRIMARY: palette.surface0,
   GRID_COLOR_SECONDARY: palette.base,
   BASE: palette.base,
   EDGE_STROKE: palette.surface2,

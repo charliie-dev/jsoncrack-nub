@@ -5,11 +5,16 @@ export enum FileFormat {
   CSV = "csv",
 }
 
+/**
+ * `accent` names a Catppuccin colour, resolved against the active flavour where the format
+ * is rendered. Each format keeps the same hue everywhere it appears so the dropdown, the
+ * empty-state cards and the bar all agree.
+ */
 export const formats = [
-  { value: FileFormat.JSON, label: "JSON" },
-  { value: FileFormat.YAML, label: "YAML" },
-  { value: FileFormat.XML, label: "XML" },
-  { value: FileFormat.CSV, label: "CSV" },
+  { value: FileFormat.JSON, label: "JSON", accent: "blue" as const },
+  { value: FileFormat.YAML, label: "YAML", accent: "green" as const },
+  { value: FileFormat.XML, label: "XML", accent: "peach" as const },
+  { value: FileFormat.CSV, label: "CSV", accent: "mauve" as const },
 ];
 
 export enum TypeLanguage {

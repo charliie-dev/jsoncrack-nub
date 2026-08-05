@@ -5,11 +5,18 @@ import { ViewMode } from "../../enums/viewMode.enum";
 import { GraphView } from "./views/GraphView";
 import { TreeView } from "./views/TreeView";
 
+/**
+ * Frames the canvas rather than letting it run to the window edge.
+ *
+ * The padding and the inner rounded border are what separate the diagram from the editor
+ * pane and the app chrome; without them the dotted background reads as the page itself.
+ */
 const StyledLiveEditor = styled.div`
   position: relative;
   height: 100%;
-  background: ${({ theme }) => theme.GRID_BG_COLOR};
-  overflow: auto;
+  padding: 10px;
+  background: ${({ theme }) => theme.BACKGROUND_TERTIARY};
+  overflow: hidden;
 
   & > ul {
     margin-top: 0 !important;
@@ -38,10 +45,22 @@ const View = () => {
   return null;
 };
 
+const StyledCanvasFrame = styled.div`
+  position: relative;
+  height: 100%;
+  width: 100%;
+  border: 1px solid ${({ theme }) => theme.BACKGROUND_MODIFIER_ACCENT};
+  border-radius: 12px;
+  background: ${({ theme }) => theme.GRID_BG_COLOR};
+  overflow: hidden;
+`;
+
 const LiveEditor = () => {
   return (
     <StyledLiveEditor onContextMenuCapture={e => e.preventDefault()}>
-      <View />
+      <StyledCanvasFrame>
+        <View />
+      </StyledCanvasFrame>
     </StyledLiveEditor>
   );
 };

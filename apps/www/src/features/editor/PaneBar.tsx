@@ -1,6 +1,7 @@
 import React from "react";
 import { Flex, Menu, Popover, Text, Tooltip } from "@mantine/core";
 import styled from "styled-components";
+import { mocha } from "jsoncrack-react/palette";
 import { event as gaEvent } from "nextjs-google-analytics";
 import { IoMdCheckmark } from "react-icons/io";
 import { LuPanelLeftClose } from "react-icons/lu";
@@ -9,9 +10,12 @@ import {
   VscCheck,
   VscError,
   VscJson,
+  VscListTree,
   VscRunAll,
+  VscSymbolNamespace,
   VscSync,
   VscSyncIgnored,
+  VscTable,
   VscWarning,
 } from "react-icons/vsc";
 import { FileFormat, formats } from "../../enums/file.enum";
@@ -87,11 +91,21 @@ const StyledPaneBarItem = styled.button<{ $bg?: string }>`
   }
 `;
 
+/** One icon per format, coloured by the accent the format owns. */
+const FORMAT_ICONS: Record<FileFormat, React.ReactNode> = {
+  [FileFormat.JSON]: <VscJson />,
+  [FileFormat.YAML]: <VscListTree />,
+  [FileFormat.XML]: <VscSymbolNamespace />,
+  [FileFormat.CSV]: <VscTable />,
+};
+
 type LampState = {
   icon: React.ReactNode;
   label: string;
   /** Popover body. Null means the state needs no explanation, which is the passing case. */
   detail: string | null;
+  /** Shown beside the icon when there is a number worth surfacing without a hover. */
+  count: number | null;
 };
 
 /**
@@ -110,13 +124,13 @@ const useLampState = (): LampState => {
   const yamlValidatorError = useFile(state => state.yamlValidatorError);
 
   if (error) {
-    return { icon: <VscError color="red" />, label: "Invalid", detail: error };
+    return { icon: <VscError color="red" />, label: "Invalid", detail: error, count: null };
   }
 
   // A YAML document whose validator never loaded has not been checked, whatever the
   // absence of markers might otherwise suggest.
   if (format === FileFormat.YAML && yamlValidatorError) {
-    return { icon: <VscWarning />, label: "Not checked", detail: yamlValidatorError };
+    return { icon: <VscWarning />, label: "Not checked", detail: yamlValidatorError, count: null };
   }
 
   if (schemaValidation.status === "unavailable") {
@@ -124,6 +138,7 @@ const useLampState = (): LampState => {
       icon: <VscWarning />,
       label: "Not checked",
       detail: schemaValidation.reason ?? "The schema could not be compiled",
+      count: null,
     };
   }
 
@@ -139,10 +154,16 @@ const useLampState = (): LampState => {
       icon: <VscError color="red" />,
       label: `${issues.length} problem${issues.length === 1 ? "" : "s"}`,
       detail: issues.map(issue => `${issue.path}  ${issue.message}`).join("\n"),
+      count: issues.length,
     };
   }
 
-  return { icon: <VscCheck />, label: "Valid", detail: null };
+  return {
+    icon: <VscCheck color="var(--mantine-color-green-6)" />,
+    label: "Valid",
+    detail: null,
+    count: null,
+  };
 };
 
 export const PaneBar = () => {
@@ -155,6 +176,8 @@ export const PaneBar = () => {
   const fullscreen = useGraph(state => state.fullscreen);
   const setFormat = useFile(state => state.setFormat);
   const currentFormat = useFile(state => state.format);
+  const currentFormatAccent =
+    formats.find(format => format.value === currentFormat)?.accent ?? "blue";
   const setVisible = useModal(state => state.setVisible);
   const lamp = useLampState();
 
@@ -175,30 +198,36 @@ export const PaneBar = () => {
             <LuPanelLeftClose size={14} />
           </StyledPaneBarItem>
         </Tooltip>
-        <StyledPaneBarItem>
+        {/* Icon only. The label is carried by the tooltip and the popover, which keeps the
+            passing state quiet: a document that validates does not need a word for it. */}
+        <StyledPaneBarItem aria-label={lamp.label}>
           {lamp.detail ? (
             // Anchored below: this bar sits at the top of the pane, so a popover opening
             // upwards would leave the viewport.
             <Popover width="auto" shadow="md" position="bottom" withArrow>
               <Popover.Target>
-                <Flex align="center" gap={2}>
+                <Flex align="center" gap={4}>
                   {lamp.icon}
-                  <Text fw={500} fz="xs">
-                    {lamp.label}
-                  </Text>
+                  {lamp.count !== null && (
+                    <Text fw={600} fz="xs">
+                      {lamp.count}
+                    </Text>
+                  )}
                 </Flex>
               </Popover.Target>
               <Popover.Dropdown style={{ pointerEvents: "none", maxWidth: 480 }}>
+                <Text fw={600} fz="xs" mb={4}>
+                  {lamp.label}
+                </Text>
                 <Text size="xs" style={{ whiteSpace: "pre-wrap" }}>
                   {lamp.detail}
                 </Text>
               </Popover.Dropdown>
             </Popover>
           ) : (
-            <Flex align="center" gap={2}>
-              {lamp.icon}
-              <Text size="xs">{lamp.label}</Text>
-            </Flex>
+            <Tooltip label={lamp.label} position="bottom" withArrow openDelay={400}>
+              <Flex align="center">{lamp.icon}</Flex>
+            </Tooltip>
           )}
         </StyledPaneBarItem>
         <StyledPaneBarItem
@@ -233,8 +262,11 @@ export const PaneBar = () => {
         <Menu offset={8}>
           <Menu.Target>
             <StyledPaneBarItem>
-              <Flex align="center" gap={2}>
-                <Text size="xs">{currentFormat?.toUpperCase()}</Text>
+              <Flex align="center" gap={4} c={mocha[currentFormatAccent]}>
+                {FORMAT_ICONS[currentFormat]}
+                <Text size="xs" fw={600}>
+                  {currentFormat?.toUpperCase()}
+                </Text>
                 <LuChevronDown size={12} />
               </Flex>
             </StyledPaneBarItem>
@@ -244,7 +276,10 @@ export const PaneBar = () => {
               <Menu.Item
                 key={format.value}
                 onClick={() => setFormat(format.value)}
+                leftSection={FORMAT_ICONS[format.value]}
                 rightSection={currentFormat === format.value && <IoMdCheckmark />}
+                c={mocha[format.accent]}
+                fw={600}
               >
                 {format.label}
               </Menu.Item>

@@ -5,22 +5,17 @@
   background-color: var(--bg-color);
 }
 
+/**
+ * A dot grid rather than ruled lines.
+ *
+ * The four crossing gradients this replaces drew a full graph-paper grid, which competed
+ * with the nodes for attention. Dots mark the same 20px rhythm while staying out of the
+ * way, and they read as background texture instead of structure.
+ */
 .showGrid {
-  background-image:
-    linear-gradient(var(--line-color-1) 1.5px, transparent 1.5px),
-    linear-gradient(90deg, var(--line-color-1) 1.5px, transparent 1.5px),
-    linear-gradient(var(--line-color-2) 1px, transparent 1px),
-    linear-gradient(90deg, var(--line-color-2) 1px, transparent 1px);
-  background-position:
-    -1.5px -1.5px,
-    -1.5px -1.5px,
-    -1px -1px,
-    -1px -1px;
-  background-size:
-    100px 100px,
-    100px 100px,
-    20px 20px,
-    20px 20px;
+  background-image: radial-gradient(var(--line-color-1) 1px, transparent 1px);
+  background-position: -1px -1px;
+  background-size: 20px 20px;
 }
 
 .canvasWrapper :global(.jsoncrack-space) {
