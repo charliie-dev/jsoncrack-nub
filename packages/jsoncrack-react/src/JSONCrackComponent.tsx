@@ -36,14 +36,9 @@ import { CollapseContext, isNodeHidden, prunePaths } from "./components/Collapse
 import { Controls } from "./components/Controls";
 import { CustomEdge } from "./components/CustomEdge";
 import { CustomNode } from "./components/CustomNode";
+import { layoutOptions } from "./layoutOptions";
 import type { CanvasThemeMode, GraphData, LayoutDirection, NodeData } from "./types";
 import { DEFAULT_ROOT_LABEL } from "./utils/nodeHeaderLabel";
-
-const layoutOptions = {
-  "elk.layered.compaction.postCompaction.strategy": "EDGE_LENGTH",
-  "elk.layered.nodePlacement.strategy": "NETWORK_SIMPLEX",
-  "elk.spacing.edgeLabel": "15",
-};
 
 /** Imperative handle exposed via the component ref for viewport control. */
 export interface JSONCrackRef {
