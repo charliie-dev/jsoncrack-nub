@@ -1,7 +1,7 @@
 import React from "react";
 import { Flex, Menu } from "@mantine/core";
 import { event as gaEvent } from "nextjs-google-analytics";
-import { CgChevronDown } from "react-icons/cg";
+import { LuChevronDown, LuDownload, LuFile, LuFolderOpen } from "react-icons/lu";
 import useFile from "../../../store/useFile";
 import { useModal } from "../../../store/useModal";
 import { StyledToolElement } from "./styles";
@@ -27,14 +27,19 @@ export const FileMenu = () => {
       <Menu.Target>
         <StyledToolElement title="File">
           <Flex align="center" gap={3}>
+            <LuFile size={14} />
             File
-            <CgChevronDown />
+            <LuChevronDown size={14} />
           </Flex>
         </StyledToolElement>
       </Menu.Target>
       <Menu.Dropdown>
-        <Menu.Item onClick={() => setVisible("ImportModal", true)}>Import</Menu.Item>
-        <Menu.Item onClick={handleSave}>Export</Menu.Item>
+        <Menu.Item leftSection={<LuFolderOpen />} onClick={() => setVisible("ImportModal", true)}>
+          Import
+        </Menu.Item>
+        <Menu.Item leftSection={<LuDownload />} onClick={handleSave}>
+          Export
+        </Menu.Item>
       </Menu.Dropdown>
     </Menu>
   );

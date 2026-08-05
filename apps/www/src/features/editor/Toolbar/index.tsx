@@ -31,6 +31,14 @@ const StyledToDiagramLink = styled.a`
   }
 `;
 
+/** Hairline between groups of controls, matching the reference UI's chrome. */
+const StyledDivider = styled.div`
+  width: 1px;
+  height: 26px;
+  flex-shrink: 0;
+  background: ${({ theme }) => theme.BORDER};
+`;
+
 const StyledTools = styled.div`
   position: relative;
   display: flex;
@@ -69,6 +77,7 @@ export const Toolbar = () => {
             <JSONCrackLogo fontSize="14px" hideLogo />
           </Flex>
         </StyledToolElement>
+        <StyledDivider />
         <FileMenu />
         <ToolsMenu />
       </Group>
@@ -83,17 +92,18 @@ export const Toolbar = () => {
           </StyledToDiagramLink>
         )}
         <ThemeToggle />
+        <StyledDivider />
         {/* The Chrome extension link that used to sit here is gone with the rest of the
             extension sweep: this fork deleted apps/chrome-extension and scrubbed the
             navbar, footer and README references, and since the editor now renders at the
             site root this toolbar is the first thing a visitor sees. */}
         <Link href="https://github.com/AykutSarac/jsoncrack.com" rel="noopener" target="_blank">
-          <StyledToolElement title="GitHub">
-            <FaGithub size="20" />
+          <StyledToolElement title="GitHub" $outlined>
+            <FaGithub size="18" />
           </StyledToolElement>
         </Link>
-        <StyledToolElement title="Fullscreen" onClick={fullscreenBrowser}>
-          <AiOutlineFullscreen size="20" />
+        <StyledToolElement title="Fullscreen" onClick={fullscreenBrowser} $outlined>
+          <AiOutlineFullscreen size="18" />
         </StyledToolElement>
       </Group>
     </StyledTools>

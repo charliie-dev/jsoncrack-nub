@@ -73,6 +73,13 @@ const buildTheme = (palette: CatppuccinPalette, isDark: boolean) => ({
   TOOLBAR_BG: palette.surface0,
   BACKGROUND_PRIMARY: palette.base,
   BACKGROUND_MODIFIER_ACCENT: palette.surface0,
+  /**
+   * Hairlines and button outlines.
+   *
+   * One step above surface0 on purpose: the toolbars are surface0, so a divider drawn in
+   * BACKGROUND_MODIFIER_ACCENT is the same colour as what it sits on and is invisible.
+   */
+  BORDER: palette.surface1,
   MODAL_BACKGROUND: palette.base,
   TEXT_NORMAL: palette.text,
   TEXT_POSITIVE: palette.green,

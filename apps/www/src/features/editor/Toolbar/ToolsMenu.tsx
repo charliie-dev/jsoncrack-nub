@@ -1,7 +1,7 @@
 import React from "react";
 import { Menu, Flex } from "@mantine/core";
 import { event as gaEvent } from "nextjs-google-analytics";
-import { CgChevronDown } from "react-icons/cg";
+import { LuChevronDown, LuWrench } from "react-icons/lu";
 import { MdFilterListAlt } from "react-icons/md";
 import { VscSearchFuzzy, VscGroupByRefType } from "react-icons/vsc";
 import { useModal } from "../../../store/useModal";
@@ -15,7 +15,9 @@ export const ToolsMenu = () => {
       <Menu.Target>
         <StyledToolElement onClick={() => gaEvent("show_tools_menu")}>
           <Flex align="center" gap={3}>
-            Tools <CgChevronDown />
+            <LuWrench size={14} />
+            Tools
+            <LuChevronDown size={14} />
           </Flex>
         </StyledToolElement>
       </Menu.Target>

@@ -19,8 +19,10 @@ const StyledPaneBar = styled.div`
   align-items: center;
   justify-content: space-between;
   padding: 4px 6px;
-  border-bottom: 1px solid ${({ theme }) => theme.BACKGROUND_MODIFIER_ACCENT};
-  background: ${({ theme }) => theme.TOOLBAR_BG};
+  /* Same surface as the editor below it, so the two read as one pane; the hairline is what
+     separates them. BACKGROUND_PRIMARY is base, which is also Monaco's editor.background. */
+  border-bottom: 1px solid ${({ theme }) => theme.BORDER};
+  background: ${({ theme }) => theme.BACKGROUND_PRIMARY};
   z-index: 2;
   flex-shrink: 0;
 
@@ -45,7 +47,17 @@ const StyledRight = styled.div`
   gap: 0;
 `;
 
-const StyledPaneBarItem = styled.button<{ $bg?: string }>`
+/** Hairline separating the pane controls, as in the reference UI. */
+const StyledDivider = styled.div`
+  width: 1px;
+  height: 22px;
+  flex-shrink: 0;
+  margin: 0 4px;
+  background: ${({ theme }) => theme.BORDER};
+`;
+
+/** `$outlined` gives an item the same button shape as the app toolbar's actions. */
+const StyledPaneBarItem = styled.button<{ $bg?: string; $outlined?: boolean }>`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -58,7 +70,7 @@ const StyledPaneBarItem = styled.button<{ $bg?: string }>`
   font-weight: 500;
   color: ${({ theme }) => theme.INTERACTIVE_NORMAL};
   background: ${({ $bg }) => $bg || "transparent"};
-  border: none;
+  border: 1px solid ${({ theme, $outlined }) => ($outlined ? theme.BORDER : "transparent")};
   border-radius: 6px;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -71,12 +83,29 @@ const StyledPaneBarItem = styled.button<{ $bg?: string }>`
   &:hover:not(&:disabled) {
     background-color: ${({ theme }) =>
       theme.IS_DARK ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.05)"};
+    border-color: ${({ theme, $outlined }) => ($outlined ? theme.SILVER_DARK : "transparent")};
     color: ${({ theme }) => theme.INTERACTIVE_HOVER};
   }
 
   &:disabled {
     opacity: 0.4;
     cursor: default;
+  }
+
+  /* Mantine sets data-expanded while a Menu.Target's dropdown is open; holding the hover
+     fill keeps the button and the dropdown reading as one thing. */
+  &[data-expanded] {
+    background-color: ${({ theme }) =>
+      theme.IS_DARK ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.05)"};
+    color: ${({ theme }) => theme.INTERACTIVE_HOVER};
+  }
+
+  svg:last-of-type {
+    transition: transform 150ms ease;
+  }
+
+  &[data-expanded] svg:last-of-type {
+    transform: rotate(180deg);
   }
 `;
 
@@ -216,6 +245,7 @@ export const PaneBar = () => {
             <LuPanelLeftClose size={14} />
           </StyledPaneBarItem>
         </Tooltip>
+        <StyledDivider />
         {/* Icon only. The label is carried by the tooltip and the popover, which keeps the
             passing state quiet: a document that validates does not need a word for it. */}
         <StyledPaneBarItem aria-label={lamp.label}>
@@ -270,12 +300,12 @@ export const PaneBar = () => {
       <StyledRight>
         <Tooltip label="Validate against a JSON Schema" position="bottom" withArrow openDelay={750}>
           <StyledPaneBarItem
+            $outlined
             onClick={() => {
               setVisible("SchemaModal", true);
               gaEvent("open_schema_modal");
             }}
           >
-            <VscJson />
             <Text fz="xs" fw={600}>
               JSON Schema
             </Text>

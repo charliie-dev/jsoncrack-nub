@@ -15,7 +15,7 @@
 .showGrid {
   background-image: radial-gradient(var(--line-color-1) 1px, transparent 1px);
   background-position: -1px -1px;
-  background-size: 20px 20px;
+  background-size: 10px 10px;
 }
 
 .canvasWrapper :global(.jsoncrack-space) {

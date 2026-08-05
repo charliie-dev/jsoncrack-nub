@@ -1,6 +1,7 @@
 import type { CatppuccinPalette } from "./catppuccin";
 import { latte, mocha } from "./catppuccin";
 import type { CanvasThemeMode } from "./types";
+import { mixHex } from "./utils/accentForKey";
 
 export interface JSONCrackTheme {
   NODE_COLORS: {
@@ -62,9 +63,10 @@ const buildTheme = (palette: CatppuccinPalette): JSONCrackTheme => ({
   BACKGROUND_MODIFIER_ACCENT: palette.surface0,
   TEXT_POSITIVE: palette.green,
   GRID_BG_COLOR: palette.crust,
-  // The grid is dots on crust, so this has to clear the background by more than the one
-  // step mantle gave it or the texture is invisible.
-  GRID_COLOR_PRIMARY: palette.surface0,
+  // Dots, so this sits between the background and surface0: mantle alone was invisible
+  // against crust, while surface0 at full strength competed with the nodes. Mixed rather
+  // than given an alpha so the value stays a plain hex like every other token.
+  GRID_COLOR_PRIMARY: mixHex(palette.surface0, palette.crust, 0.45),
   GRID_COLOR_SECONDARY: palette.base,
   BASE: palette.base,
   EDGE_STROKE: palette.surface2,
