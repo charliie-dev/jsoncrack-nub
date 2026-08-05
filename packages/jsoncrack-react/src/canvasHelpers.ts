@@ -35,15 +35,14 @@ export const buildCanvasStyle = (
   userStyle?: CSSProperties
 ): CSSProperties => {
   const themeTokens = themes[theme];
-  const isDark = theme === "dark";
 
   return {
     "--bg-color": themeTokens.GRID_BG_COLOR,
     "--line-color-1": themeTokens.GRID_COLOR_PRIMARY,
     "--line-color-2": themeTokens.GRID_COLOR_SECONDARY,
-    "--edge-stroke": isDark ? "#444444" : "#BCBEC0",
-    "--node-fill": isDark ? "#292929" : "#ffffff",
-    "--node-stroke": isDark ? "#424242" : "#BCBEC0",
+    "--edge-stroke": themeTokens.EDGE_STROKE,
+    "--node-fill": themeTokens.NODE_FILL,
+    "--node-stroke": themeTokens.NODE_STROKE,
     "--interactive-normal": themeTokens.INTERACTIVE_NORMAL,
     "--background-node": themeTokens.BACKGROUND_NODE,
     "--node-text": themeTokens.NODE_COLORS.TEXT,
@@ -55,11 +54,13 @@ export const buildCanvasStyle = (
     "--node-bool-false": themeTokens.NODE_COLORS.BOOL.FALSE,
     "--node-child-count": themeTokens.NODE_COLORS.CHILD_COUNT,
     "--node-divider": themeTokens.NODE_COLORS.DIVIDER,
+    "--node-header-text": themeTokens.NODE_COLORS.HEADER_TEXT,
+    "--node-base": themeTokens.BASE,
     "--text-positive": themeTokens.TEXT_POSITIVE,
     "--background-modifier-accent": themeTokens.BACKGROUND_MODIFIER_ACCENT,
-    "--spinner-track": isDark ? "rgba(255, 255, 255, 0.3)" : "rgba(17, 24, 39, 0.2)",
-    "--spinner-head": isDark ? "#FFFFFF" : "#111827",
-    "--overlay-bg": isDark ? "rgba(0, 0, 0, 0.2)" : "rgba(255, 255, 255, 0.38)",
+    "--spinner-track": themeTokens.SPINNER_TRACK,
+    "--spinner-head": themeTokens.SPINNER_HEAD,
+    "--overlay-bg": themeTokens.OVERLAY_BG,
     ...userStyle,
   } as CSSProperties;
 };

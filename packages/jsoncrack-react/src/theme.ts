@@ -1,3 +1,5 @@
+import type { CatppuccinPalette } from "./catppuccin";
+import { latte, mocha } from "./catppuccin";
 import type { CanvasThemeMode } from "./types";
 
 export interface JSONCrackTheme {
@@ -13,6 +15,8 @@ export interface JSONCrackTheme {
     };
     CHILD_COUNT: string;
     DIVIDER: string;
+    /** Header label colour. The header background is the same accent mixed into BASE. */
+    HEADER_TEXT: string;
   };
   INTERACTIVE_NORMAL: string;
   BACKGROUND_NODE: string;
@@ -21,51 +25,55 @@ export interface JSONCrackTheme {
   GRID_BG_COLOR: string;
   GRID_COLOR_PRIMARY: string;
   GRID_COLOR_SECONDARY: string;
+  /** Flavour base, needed by consumers that mix accents against it. */
+  BASE: string;
+  EDGE_STROKE: string;
+  NODE_FILL: string;
+  NODE_STROKE: string;
+  SPINNER_TRACK: string;
+  SPINNER_HEAD: string;
+  OVERLAY_BG: string;
 }
 
+/**
+ * Derive a canvas theme from a Catppuccin flavour.
+ *
+ * Every value comes from the palette. The canvas used to carry a second set of colours
+ * hard-coded as `isDark ? a : b` inside buildCanvasStyle, which meant half the surface
+ * ignored the theme entirely; those are now tokens here.
+ */
+const buildTheme = (palette: CatppuccinPalette): JSONCrackTheme => ({
+  NODE_COLORS: {
+    TEXT: palette.text,
+    NODE_KEY: palette.blue,
+    NODE_VALUE: palette.text,
+    INTEGER: palette.peach,
+    NULL: palette.overlay0,
+    BOOL: {
+      FALSE: palette.red,
+      TRUE: palette.green,
+    },
+    CHILD_COUNT: palette.subtext0,
+    DIVIDER: palette.surface0,
+    HEADER_TEXT: palette.subtext1,
+  },
+  INTERACTIVE_NORMAL: palette.subtext0,
+  BACKGROUND_NODE: palette.mantle,
+  BACKGROUND_MODIFIER_ACCENT: palette.surface0,
+  TEXT_POSITIVE: palette.green,
+  GRID_BG_COLOR: palette.crust,
+  GRID_COLOR_PRIMARY: palette.mantle,
+  GRID_COLOR_SECONDARY: palette.base,
+  BASE: palette.base,
+  EDGE_STROKE: palette.surface2,
+  NODE_FILL: palette.mantle,
+  NODE_STROKE: palette.surface0,
+  SPINNER_TRACK: palette.surface1,
+  SPINNER_HEAD: palette.text,
+  OVERLAY_BG: palette.crust,
+});
+
 export const themes: Record<CanvasThemeMode, JSONCrackTheme> = {
-  dark: {
-    NODE_COLORS: {
-      TEXT: "#DCE5E7",
-      NODE_KEY: "#59b8ff",
-      NODE_VALUE: "#DCE5E7",
-      INTEGER: "#e8c479",
-      NULL: "#939598",
-      BOOL: {
-        FALSE: "#F85C50",
-        TRUE: "#00DC7D",
-      },
-      CHILD_COUNT: "#FFFFFF",
-      DIVIDER: "#383838",
-    },
-    INTERACTIVE_NORMAL: "#b9bbbe",
-    BACKGROUND_NODE: "#2B2C3E",
-    BACKGROUND_MODIFIER_ACCENT: "rgba(79,84,92,0.48)",
-    TEXT_POSITIVE: "hsl(139,calc(var(--saturation-factor, 1)*51.6%),52.2%)",
-    GRID_BG_COLOR: "#141414",
-    GRID_COLOR_PRIMARY: "#1c1b1b",
-    GRID_COLOR_SECONDARY: "#191919",
-  },
-  light: {
-    NODE_COLORS: {
-      TEXT: "#000000",
-      NODE_KEY: "#761CEA",
-      NODE_VALUE: "#535353",
-      INTEGER: "#FD0079",
-      NULL: "#afafaf",
-      BOOL: {
-        FALSE: "#FF0000",
-        TRUE: "#748700",
-      },
-      CHILD_COUNT: "#535353",
-      DIVIDER: "#e6e6e6",
-    },
-    INTERACTIVE_NORMAL: "#4f5660",
-    BACKGROUND_NODE: "#F6F8FA",
-    BACKGROUND_MODIFIER_ACCENT: "rgba(106,116,128,0.24)",
-    TEXT_POSITIVE: "#008736",
-    GRID_BG_COLOR: "#f7f7f7",
-    GRID_COLOR_PRIMARY: "#ebe8e8",
-    GRID_COLOR_SECONDARY: "#f2eeee",
-  },
+  dark: buildTheme(mocha),
+  light: buildTheme(latte),
 };

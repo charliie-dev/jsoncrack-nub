@@ -1,4 +1,5 @@
 export { JSONCrack } from "./JSONCrackComponent";
+export { NODE_DIMENSIONS } from "./nodeDimensions";
 export { parseGraph } from "./parser";
 export type { JSONCrackProps, JSONCrackRef } from "./JSONCrackComponent";
 export type { ParseGraphResult } from "./parser";

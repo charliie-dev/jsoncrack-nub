@@ -1,5 +1,6 @@
 import React from "react";
 import type { JSONPath } from "jsonc-parser";
+import { NODE_DIMENSIONS } from "../nodeDimensions";
 import type { NodeData } from "../types";
 import { isPathCollapsed, useCollapseContext } from "./CollapseContext";
 import styles from "./Node.module.css";
@@ -20,10 +21,8 @@ type RowProps = {
   parentPath: JSONPath;
 };
 
-const ROW_HEIGHT = 30;
-
 const Row = ({ row, x, y, index, parentPath }: RowProps) => {
-  const rowPosition = index * ROW_HEIGHT;
+  const rowPosition = NODE_DIMENSIONS.HEADER_HEIGHT + index * NODE_DIMENSIONS.ROW_HEIGHT;
   const { collapsedSet, onToggleCollapse } = useCollapseContext();
 
   const isContainer =

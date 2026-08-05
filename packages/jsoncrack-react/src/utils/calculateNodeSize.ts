@@ -1,7 +1,4 @@
-const NODE_DIMENSIONS = {
-  ROW_HEIGHT: 30,
-  PARENT_HEIGHT: 36,
-} as const;
+import { NODE_DIMENSIONS } from "../nodeDimensions";
 
 type Text = number | string | [string, string][];
 type Size = { width: number; height: number };
@@ -24,7 +21,9 @@ const fallbackSize = (str: string, single: boolean): Size => {
 
   return {
     width: Math.min(700, Math.max(45, longestLine * 8 + 24)),
-    height: single ? NODE_DIMENSIONS.PARENT_HEIGHT : lines.length * NODE_DIMENSIONS.ROW_HEIGHT,
+    height:
+      (single ? NODE_DIMENSIONS.PARENT_HEIGHT : lines.length * NODE_DIMENSIONS.ROW_HEIGHT) +
+      NODE_DIMENSIONS.HEADER_HEIGHT,
   };
 };
 
@@ -52,7 +51,9 @@ const calculateWidthAndHeight = (str: string, single = false): Size => {
   const lines = str.split("\n").length;
 
   const width = clientRect.width + 4;
-  const height = single ? NODE_DIMENSIONS.PARENT_HEIGHT : lines * NODE_DIMENSIONS.ROW_HEIGHT;
+  const height =
+    (single ? NODE_DIMENSIONS.PARENT_HEIGHT : lines * NODE_DIMENSIONS.ROW_HEIGHT) +
+    NODE_DIMENSIONS.HEADER_HEIGHT;
 
   document.body.removeChild(dummyElement);
   return { width, height };
