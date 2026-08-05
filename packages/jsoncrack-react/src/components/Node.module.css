@@ -9,10 +9,32 @@
   overflow: hidden;
   pointer-events: none;
   border-radius: 5px;
+  /* Column flex so the header sits above the body instead of overlapping it. Text nodes
+     rely on this: their wrapper used to be height:100%, which would now cover the header. */
+  display: flex;
+  flex-direction: column;
 }
 
 .objectForeignObject {
   text-align: left;
+  /* Object nodes stack block-level rows under the header on their own; flex would turn
+     each row into a flex item and drop the row heights the layout was measured against. */
+  display: block;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-bottom: 1px solid var(--node-divider);
 }
 
 .key {
@@ -77,7 +99,10 @@
   display: flex;
   justify-content: flex-start;
   align-items: center;
-  height: 100%;
+  /* flex:1 rather than height:100%, which would measure against the whole foreignObject
+     including the header and push the body out of view. */
+  flex: 1;
+  min-height: 0;
   width: 100%;
   overflow: hidden;
   padding: 0 10px;

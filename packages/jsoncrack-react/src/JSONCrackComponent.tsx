@@ -37,6 +37,7 @@ import { Controls } from "./components/Controls";
 import { CustomEdge } from "./components/CustomEdge";
 import { CustomNode } from "./components/CustomNode";
 import type { CanvasThemeMode, GraphData, LayoutDirection, NodeData } from "./types";
+import { DEFAULT_ROOT_LABEL } from "./utils/nodeHeaderLabel";
 
 const layoutOptions = {
   "elk.layered.compaction.postCompaction.strategy": "EDGE_LENGTH",
@@ -74,6 +75,13 @@ export interface JSONCrackProps {
   theme?: CanvasThemeMode;
   /** ELK layout direction for node placement. Defaults to `RIGHT`. */
   layoutDirection?: LayoutDirection;
+  /**
+   * Header text for the root node. Defaults to `Untitled`.
+   *
+   * The root has no key to name itself with, and the package has no idea what the document
+   * is called, so the host passes its filename down.
+   */
+  rootLabel?: string;
   /** Whether to render the built-in zoom/focus control overlay. Defaults to `true`. */
   showControls?: boolean;
   /** Whether to draw the background grid. Defaults to `true`. */
@@ -118,6 +126,7 @@ export const JSONCrack = forwardRef<JSONCrackRef, JSONCrackProps>(
       json,
       theme = "dark",
       layoutDirection = "RIGHT",
+      rootLabel = DEFAULT_ROOT_LABEL,
       showControls = true,
       showGrid = true,
       trackpadZoom = false,
@@ -536,8 +545,10 @@ export const JSONCrack = forwardRef<JSONCrackRef, JSONCrackProps>(
 
     // Stable render factories so reaflow doesn't re-key nodes/edges on every parent render.
     const renderNode = useCallback(
-      (nodeProps: NodeProps) => <CustomNode {...nodeProps} onNodeClick={onNodeClick} />,
-      [onNodeClick]
+      (nodeProps: NodeProps) => (
+        <CustomNode {...nodeProps} onNodeClick={onNodeClick} theme={theme} rootLabel={rootLabel} />
+      ),
+      [onNodeClick, theme, rootLabel]
     );
     const renderEdge = useCallback(
       (edgeProps: EdgeProps) => (

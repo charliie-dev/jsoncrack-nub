@@ -1,15 +1,19 @@
 import React from "react";
 import type { NodeProps } from "reaflow";
 import { Node } from "reaflow";
-import type { NodeData } from "../types";
+import type { CanvasThemeMode, NodeData } from "../types";
 import { ObjectNode } from "./ObjectNode";
 import { TextNode } from "./TextNode";
 
 type CustomNodeProps = NodeProps<NodeData> & {
   onNodeClick?: (node: NodeData) => void;
+  /** Flavour the header colours resolve against. */
+  theme: CanvasThemeMode;
+  /** Header text for the root node, which has no key of its own. */
+  rootLabel: string;
 };
 
-const CustomNodeBase = ({ onNodeClick, ...nodeProps }: CustomNodeProps) => {
+const CustomNodeBase = ({ onNodeClick, theme, rootLabel, ...nodeProps }: CustomNodeProps) => {
   const handleNodeClick = React.useCallback(
     (_: React.MouseEvent<SVGGElement, MouseEvent>, data: NodeData) => {
       onNodeClick?.(data);
@@ -37,10 +41,20 @@ const CustomNodeBase = ({ onNodeClick, ...nodeProps }: CustomNodeProps) => {
     >
       {({ node, x, y }) => {
         if (nodeProps.properties.text[0]?.key == null) {
-          return <TextNode node={nodeProps.properties as NodeData} x={x} y={y} />;
+          return (
+            <TextNode
+              node={nodeProps.properties as NodeData}
+              x={x}
+              y={y}
+              theme={theme}
+              rootLabel={rootLabel}
+            />
+          );
         }
 
-        return <ObjectNode node={node as NodeData} x={x} y={y} />;
+        return (
+          <ObjectNode node={node as NodeData} x={x} y={y} theme={theme} rootLabel={rootLabel} />
+        );
       }}
     </Node>
   );

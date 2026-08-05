@@ -1,9 +1,11 @@
 import React from "react";
 import type { JSONPath } from "jsonc-parser";
 import { NODE_DIMENSIONS } from "../nodeDimensions";
-import type { NodeData } from "../types";
+import type { CanvasThemeMode, NodeData } from "../types";
+import { nodeHeaderLabel } from "../utils/nodeHeaderLabel";
 import { isPathCollapsed, useCollapseContext } from "./CollapseContext";
 import styles from "./Node.module.css";
+import { NodeHeader } from "./NodeHeader";
 import { TextRenderer } from "./TextRenderer";
 import { getTextColor } from "./nodeStyles";
 
@@ -11,6 +13,8 @@ type ObjectNodeProps = {
   node: NodeData;
   x: number;
   y: number;
+  theme: CanvasThemeMode;
+  rootLabel: string;
 };
 
 type RowProps = {
@@ -88,8 +92,11 @@ const Row = ({ row, x, y, index, parentPath }: RowProps) => {
   );
 };
 
-const ObjectNodeBase = ({ node, x, y }: ObjectNodeProps) => {
+const ObjectNodeBase = ({ node, x, y, theme, rootLabel }: ObjectNodeProps) => {
   const parentPath = node.path ?? [];
+  const label = nodeHeaderLabel(node.path, rootLabel);
+  const isRoot = !node.path || node.path.length === 0;
+
   return (
     <foreignObject
       className={`${styles.foreignObject} ${styles.objectForeignObject}`}
@@ -99,6 +106,12 @@ const ObjectNodeBase = ({ node, x, y }: ObjectNodeProps) => {
       x={0}
       y={0}
     >
+      <NodeHeader
+        label={label}
+        accentKey={isRoot ? null : label}
+        theme={theme}
+        width={node.width}
+      />
       {node.text.map((row, index) => (
         <Row
           key={`${node.id}-${index}`}
@@ -159,6 +172,8 @@ const arePathsEqual = (a?: JSONPath, b?: JSONPath) => {
 
 const propsAreEqual = (prev: ObjectNodeProps, next: ObjectNodeProps) => {
   return (
+    prev.theme === next.theme &&
+    prev.rootLabel === next.rootLabel &&
     prev.node.width === next.node.width &&
     prev.node.height === next.node.height &&
     arePathsEqual(prev.node.path, next.node.path) &&
