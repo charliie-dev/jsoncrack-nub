@@ -16,7 +16,7 @@
     "start": "nub run --filter www start",
     "lint": "nub run --filter jsoncrack-react build && nub run -r lint",
     "lint:fix": "nub run -r lint:fix",
-    "test": "nub run -r --if-present test",
+    "test": "nub run --filter jsoncrack-react build && nub run -r --if-present test",
     "analyze": "nub run --filter jsoncrack-react build && ANALYZE=true nub run --filter www build",
     "clean": "nub run -r --if-present clean"
   },
