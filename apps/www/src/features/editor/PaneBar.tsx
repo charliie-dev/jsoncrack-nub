@@ -6,15 +6,7 @@ import { event as gaEvent } from "nextjs-google-analytics";
 import { IoMdCheckmark, IoMdClose } from "react-icons/io";
 import { LuPanelLeftClose } from "react-icons/lu";
 import { LuChevronDown } from "react-icons/lu";
-import {
-  VscJson,
-  VscListTree,
-  VscRunAll,
-  VscSymbolNamespace,
-  VscSync,
-  VscSyncIgnored,
-  VscTable,
-} from "react-icons/vsc";
+import { VscJson, VscListTree, VscRunAll, VscSymbolNamespace, VscTable } from "react-icons/vsc";
 import { FileFormat, formats } from "../../enums/file.enum";
 import useConfig from "../../store/useConfig";
 import useFile from "../../store/useFile";
@@ -195,7 +187,6 @@ const useLampState = (): LampState => {
 
 export const PaneBar = () => {
   const documentName = useFile(state => state.documentName);
-  const toggleLiveTransform = useConfig(state => state.toggleLiveTransform);
   const liveTransformEnabled = useConfig(state => state.liveTransformEnabled);
   const error = useFile(state => state.error);
   const setContents = useFile(state => state.setContents);
@@ -259,20 +250,20 @@ export const PaneBar = () => {
             </Tooltip>
           )}
         </StyledPaneBarItem>
-        <StyledPaneBarItem
-          onClick={() => {
-            toggleLiveTransform(!liveTransformEnabled);
-            gaEvent("toggle_live_transform");
-          }}
-        >
-          {liveTransformEnabled ? <VscSync /> : <VscSyncIgnored />}
-          <Text fz="xs">Live Transform</Text>
-        </StyledPaneBarItem>
+        {/* The toggle itself lives in the canvas preferences menu; this is the action that
+            goes with it, and it only appears while the graph is not following the editor. */}
         {!liveTransformEnabled && (
-          <StyledPaneBarItem onClick={() => setContents({})} disabled={!!error}>
-            <VscRunAll />
-            Click to Transform
-          </StyledPaneBarItem>
+          <Tooltip
+            label="Live Transform is off. Update the graph from the editor."
+            position="bottom"
+            withArrow
+            openDelay={400}
+          >
+            <StyledPaneBarItem onClick={() => setContents({})} disabled={!!error}>
+              <VscRunAll />
+              <Text fz="xs">Transform</Text>
+            </StyledPaneBarItem>
+          </Tooltip>
         )}
       </StyledLeft>
 
@@ -285,7 +276,9 @@ export const PaneBar = () => {
             }}
           >
             <VscJson />
-            <Text fz="xs">JSON Schema</Text>
+            <Text fz="xs" fw={600}>
+              JSON Schema
+            </Text>
           </StyledPaneBarItem>
         </Tooltip>
         <Menu offset={8}>

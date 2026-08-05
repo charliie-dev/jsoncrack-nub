@@ -96,6 +96,8 @@ export const Toolbar = () => {
   const toggleGestures = useConfig(state => state.toggleGestures);
   const rulersEnabled = useConfig(state => state.rulersEnabled);
   const toggleRulers = useConfig(state => state.toggleRulers);
+  const liveTransformEnabled = useConfig(state => state.liveTransformEnabled);
+  const toggleLiveTransform = useConfig(state => state.toggleLiveTransform);
 
   const [searchOpen, setSearchOpen] = React.useState(false);
   const [coreKey, setCoreKey] = React.useState("CTRL");
@@ -310,6 +312,19 @@ export const Toolbar = () => {
                 closeMenuOnClick={false}
               >
                 Rulers
+              </Menu.Item>
+              <Menu.Item
+                fz="sm"
+                rightSection={<BsCheck2 display={liveTransformEnabled ? "initial" : "none"} />}
+                onClick={() => {
+                  toggleLiveTransform(!liveTransformEnabled);
+                  gaEvent("toggle_live_transform", {
+                    label: liveTransformEnabled ? "on" : "off",
+                  });
+                }}
+                closeMenuOnClick={false}
+              >
+                Live Transform
               </Menu.Item>
             </Menu.Dropdown>
           </Menu>
