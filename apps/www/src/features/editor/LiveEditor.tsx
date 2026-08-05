@@ -2,6 +2,7 @@ import React from "react";
 import { useSessionStorage } from "@mantine/hooks";
 import styled from "styled-components";
 import { ViewMode } from "../../enums/viewMode.enum";
+import { ViewTabs } from "./ViewTabs";
 import { GraphView } from "./views/GraphView";
 import { TreeView } from "./views/TreeView";
 
@@ -13,8 +14,10 @@ import { TreeView } from "./views/TreeView";
  */
 const StyledLiveEditor = styled.div`
   position: relative;
+  display: flex;
+  flex-direction: column;
   height: 100%;
-  padding: 10px;
+  padding: 10px 10px 0;
   background: ${({ theme }) => theme.BACKGROUND_TERTIARY};
   overflow: hidden;
 
@@ -34,20 +37,12 @@ const StyledLiveEditor = styled.div`
   }
 `;
 
-const View = () => {
-  const [viewMode] = useSessionStorage({
-    key: "viewMode",
-    defaultValue: ViewMode.Graph,
-  });
-
-  if (viewMode === ViewMode.Graph) return <GraphView />;
-  if (viewMode === ViewMode.Tree) return <TreeView />;
-  return null;
-};
-
 const StyledCanvasFrame = styled.div`
   position: relative;
-  height: 100%;
+  /* Takes the space the tab strip leaves rather than a fixed height, so the frame stays
+     flush with the bottom of the pane whatever the strip measures. */
+  flex: 1;
+  min-height: 0;
   width: 100%;
   border: 1px solid ${({ theme }) => theme.BACKGROUND_MODIFIER_ACCENT};
   border-radius: 12px;
@@ -56,11 +51,18 @@ const StyledCanvasFrame = styled.div`
 `;
 
 const LiveEditor = () => {
+  const [viewMode, setViewMode] = useSessionStorage({
+    key: "viewMode",
+    defaultValue: ViewMode.Graph,
+  });
+
   return (
     <StyledLiveEditor onContextMenuCapture={e => e.preventDefault()}>
       <StyledCanvasFrame>
-        <View />
+        {viewMode === ViewMode.Graph && <GraphView />}
+        {viewMode === ViewMode.Tree && <TreeView />}
       </StyledCanvasFrame>
+      <ViewTabs viewMode={viewMode} onChange={setViewMode} />
     </StyledLiveEditor>
   );
 };

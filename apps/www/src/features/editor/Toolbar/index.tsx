@@ -10,7 +10,6 @@ import { JSONCrackLogo } from "../../../layout/JSONCrackBrandLogo";
 import { FileMenu } from "./FileMenu";
 import { ThemeToggle } from "./ThemeToggle";
 import { ToolsMenu } from "./ToolsMenu";
-import { ViewMenu } from "./ViewMenu";
 import { StyledToolElement } from "./styles";
 
 const StyledToDiagramLink = styled.a`
@@ -71,7 +70,6 @@ export const Toolbar = () => {
           </Flex>
         </StyledToolElement>
         <FileMenu />
-        <ViewMenu />
         <ToolsMenu />
       </Group>
       <Group gap="xs" justify="right" w="100%" style={{ flexWrap: "nowrap" }}>
