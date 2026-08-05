@@ -24,6 +24,10 @@ const config = {
   compiler: {
     styledComponents: true,
   },
+  // Only consulted when running without --webpack, which neither `dev` nor `build` does
+  // today. Switching to turbopack would also need the monaco-yaml worker and the
+  // monaco-editor worker alias wired up here, or YAML schema validation silently stops
+  // producing markers.
   turbopack: {
     resolveAlias: {
       fs: {

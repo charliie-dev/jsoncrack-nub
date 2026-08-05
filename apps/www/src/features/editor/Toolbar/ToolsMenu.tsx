@@ -3,7 +3,7 @@ import { Menu, Flex } from "@mantine/core";
 import { event as gaEvent } from "nextjs-google-analytics";
 import { CgChevronDown } from "react-icons/cg";
 import { MdFilterListAlt } from "react-icons/md";
-import { VscSearchFuzzy, VscJson, VscGroupByRefType } from "react-icons/vsc";
+import { VscSearchFuzzy, VscGroupByRefType } from "react-icons/vsc";
 import { useModal } from "../../../store/useModal";
 import { StyledToolElement } from "./styles";
 
@@ -38,15 +38,8 @@ export const ToolsMenu = () => {
         >
           JSON Path
         </Menu.Item>
-        <Menu.Item
-          leftSection={<VscJson />}
-          onClick={() => {
-            setVisible("SchemaModal", true);
-            gaEvent("open_schema_modal");
-          }}
-        >
-          JSON Schema
-        </Menu.Item>
+        {/* JSON Schema lives on the pane bar now, next to the format dropdown. Two entry
+            points for one modal only makes people wonder which is the real one. */}
         <Menu.Divider />
         <Menu.Item
           leftSection={<VscGroupByRefType />}

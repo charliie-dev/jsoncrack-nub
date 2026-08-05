@@ -2,7 +2,6 @@ import debounce from "lodash.debounce";
 import { event as gaEvent } from "nextjs-google-analytics";
 import { toast } from "react-hot-toast";
 import { create } from "zustand";
-import exampleJson from "../data/example.json";
 import { FileFormat } from "../enums/file.enum";
 import { isIframe } from "../lib/utils/helpers";
 import { contentToJson, jsonToContent } from "../lib/utils/jsonAdapter";
@@ -14,8 +13,6 @@ import {
 } from "../lib/utils/validateAgainstSchema";
 import useConfig from "./useConfig";
 import useJson from "./useJson";
-
-const defaultJson = JSON.stringify(exampleJson, null, 2);
 
 type SetContents = {
   contents?: string;
@@ -57,7 +54,8 @@ export type File = {
 const initialStates = {
   fileData: null as File | null,
   format: FileFormat.JSON,
-  contents: defaultJson,
+  // Empty until checkEditorSession restores a session or the user picks a format.
+  contents: "",
   error: null as any,
   hasChanges: false,
   jsonSchema: null as object | null,
@@ -117,7 +115,9 @@ const useFile = create<FileStates & JsonActions>()((set, get) => ({
   setContents: async ({ contents, hasChanges = true, skipUpdate = false, format }) => {
     try {
       set({
-        ...(contents && { contents }),
+        // Compared against undefined, not truthiness: an empty string is a real value
+        // here, and treating it as "no change" would make the editor impossible to clear.
+        ...(contents !== undefined && { contents }),
         error: null,
         hasChanges,
         format: format ?? get().format,
@@ -171,13 +171,15 @@ const useFile = create<FileStates & JsonActions>()((set, get) => ({
       return get().fetchUrl(url);
     }
 
-    let contents = defaultJson;
     const sessionContent = sessionStorage.getItem("content") as string | null;
     const format = sessionStorage.getItem("format") as FileFormat | null;
-    if (sessionContent && !widget) contents = sessionContent;
 
     if (format) set({ format });
-    get().setContents({ contents, hasChanges: false });
+
+    // Deliberately empty when there is nothing to restore. The canvas shows a format
+    // picker instead of a preloaded example, so a new user's first screen is a choice
+    // rather than somebody else's data.
+    get().setContents({ contents: widget ? "" : (sessionContent ?? ""), hasChanges: false });
   },
 }));
 

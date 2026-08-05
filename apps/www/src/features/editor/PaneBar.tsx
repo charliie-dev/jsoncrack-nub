@@ -5,13 +5,22 @@ import { event as gaEvent } from "nextjs-google-analytics";
 import { IoMdCheckmark } from "react-icons/io";
 import { LuPanelLeftClose } from "react-icons/lu";
 import { LuChevronDown } from "react-icons/lu";
-import { VscCheck, VscError, VscRunAll, VscSync, VscSyncIgnored } from "react-icons/vsc";
+import {
+  VscCheck,
+  VscError,
+  VscJson,
+  VscRunAll,
+  VscSync,
+  VscSyncIgnored,
+  VscWarning,
+} from "react-icons/vsc";
 import { formats } from "../../enums/file.enum";
 import useConfig from "../../store/useConfig";
 import useFile from "../../store/useFile";
+import { useModal } from "../../store/useModal";
 import useGraph from "./views/GraphView/stores/useGraph";
 
-const StyledBottomBar = styled.div`
+const StyledPaneBar = styled.div`
   position: relative;
   display: flex;
   align-items: center;
@@ -43,7 +52,7 @@ const StyledRight = styled.div`
   gap: 0;
 `;
 
-const StyledBottomBarItem = styled.button<{ $bg?: string }>`
+const StyledPaneBarItem = styled.button<{ $bg?: string }>`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -68,9 +77,7 @@ const StyledBottomBarItem = styled.button<{ $bg?: string }>`
 
   &:hover:not(&:disabled) {
     background-color: ${({ theme }) =>
-      theme.BACKGROUND_SECONDARY === "#f2f3f5"
-        ? "rgba(0, 0, 0, 0.05)"
-        : "rgba(255, 255, 255, 0.05)"};
+      theme.IS_DARK ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.05)"};
     color: ${({ theme }) => theme.INTERACTIVE_HOVER};
   }
 
@@ -80,7 +87,57 @@ const StyledBottomBarItem = styled.button<{ $bg?: string }>`
   }
 `;
 
-export const BottomBar = () => {
+type LampState = {
+  icon: React.ReactNode;
+  label: string;
+  /** Popover body. Null means the state needs no explanation, which is the passing case. */
+  detail: string | null;
+};
+
+/**
+ * What the validation lamp shows, in priority order.
+ *
+ * A parse failure outranks everything because nothing downstream had valid input. "Not
+ * checked" outranks the pass case so a schema that could not compile never reads as a
+ * tick. Monaco markers and ajv issues never coexist: JSON and YAML produce the former,
+ * XML and CSV the latter.
+ */
+const useLampState = (): LampState => {
+  const error = useFile(state => state.error);
+  const markers = useFile(state => state.markers);
+  const schemaValidation = useFile(state => state.schemaValidation);
+
+  if (error) {
+    return { icon: <VscError color="red" />, label: "Invalid", detail: error };
+  }
+
+  if (schemaValidation.status === "unavailable") {
+    return {
+      icon: <VscWarning />,
+      label: "Not checked",
+      detail: schemaValidation.reason ?? "The schema could not be compiled",
+    };
+  }
+
+  const issues =
+    markers.length > 0
+      ? markers
+      : schemaValidation.status === "invalid"
+        ? schemaValidation.issues
+        : [];
+
+  if (issues.length > 0) {
+    return {
+      icon: <VscError color="red" />,
+      label: `${issues.length} problem${issues.length === 1 ? "" : "s"}`,
+      detail: issues.map(issue => `${issue.path}  ${issue.message}`).join("\n"),
+    };
+  }
+
+  return { icon: <VscCheck />, label: "Valid", detail: null };
+};
+
+export const PaneBar = () => {
   const data = useFile(state => state.fileData);
   const toggleLiveTransform = useConfig(state => state.toggleLiveTransform);
   const liveTransformEnabled = useConfig(state => state.liveTransformEnabled);
@@ -90,6 +147,8 @@ export const BottomBar = () => {
   const fullscreen = useGraph(state => state.fullscreen);
   const setFormat = useFile(state => state.setFormat);
   const currentFormat = useFile(state => state.format);
+  const setVisible = useModal(state => state.setVisible);
+  const lamp = useLampState();
 
   const toggleEditor = () => {
     toggleFullscreen(!fullscreen);
@@ -101,36 +160,40 @@ export const BottomBar = () => {
   }, [data]);
 
   return (
-    <StyledBottomBar>
+    <StyledPaneBar>
       <StyledLeft>
         <Tooltip label="Close editor" position="bottom" withArrow openDelay={750}>
-          <StyledBottomBarItem onClick={toggleEditor} aria-label="close editor">
+          <StyledPaneBarItem onClick={toggleEditor} aria-label="close editor">
             <LuPanelLeftClose size={14} />
-          </StyledBottomBarItem>
+          </StyledPaneBarItem>
         </Tooltip>
-        <StyledBottomBarItem>
-          {error ? (
-            <Popover width="auto" shadow="md" position="top" withArrow>
+        <StyledPaneBarItem>
+          {lamp.detail ? (
+            // Anchored below: this bar sits at the top of the pane, so a popover opening
+            // upwards would leave the viewport.
+            <Popover width="auto" shadow="md" position="bottom" withArrow>
               <Popover.Target>
                 <Flex align="center" gap={2}>
-                  <VscError color="red" />
-                  <Text c="red" fw={500} fz="xs">
-                    Invalid
+                  {lamp.icon}
+                  <Text fw={500} fz="xs">
+                    {lamp.label}
                   </Text>
                 </Flex>
               </Popover.Target>
-              <Popover.Dropdown style={{ pointerEvents: "none" }}>
-                <Text size="xs">{error}</Text>
+              <Popover.Dropdown style={{ pointerEvents: "none", maxWidth: 480 }}>
+                <Text size="xs" style={{ whiteSpace: "pre-wrap" }}>
+                  {lamp.detail}
+                </Text>
               </Popover.Dropdown>
             </Popover>
           ) : (
             <Flex align="center" gap={2}>
-              <VscCheck />
-              <Text size="xs">Valid</Text>
+              {lamp.icon}
+              <Text size="xs">{lamp.label}</Text>
             </Flex>
           )}
-        </StyledBottomBarItem>
-        <StyledBottomBarItem
+        </StyledPaneBarItem>
+        <StyledPaneBarItem
           onClick={() => {
             toggleLiveTransform(!liveTransformEnabled);
             gaEvent("toggle_live_transform");
@@ -138,24 +201,35 @@ export const BottomBar = () => {
         >
           {liveTransformEnabled ? <VscSync /> : <VscSyncIgnored />}
           <Text fz="xs">Live Transform</Text>
-        </StyledBottomBarItem>
+        </StyledPaneBarItem>
         {!liveTransformEnabled && (
-          <StyledBottomBarItem onClick={() => setContents({})} disabled={!!error}>
+          <StyledPaneBarItem onClick={() => setContents({})} disabled={!!error}>
             <VscRunAll />
             Click to Transform
-          </StyledBottomBarItem>
+          </StyledPaneBarItem>
         )}
       </StyledLeft>
 
       <StyledRight>
+        <Tooltip label="Validate against a JSON Schema" position="bottom" withArrow openDelay={750}>
+          <StyledPaneBarItem
+            onClick={() => {
+              setVisible("SchemaModal", true);
+              gaEvent("open_schema_modal");
+            }}
+          >
+            <VscJson />
+            <Text fz="xs">JSON Schema</Text>
+          </StyledPaneBarItem>
+        </Tooltip>
         <Menu offset={8}>
           <Menu.Target>
-            <StyledBottomBarItem>
+            <StyledPaneBarItem>
               <Flex align="center" gap={2}>
                 <Text size="xs">{currentFormat?.toUpperCase()}</Text>
                 <LuChevronDown size={12} />
               </Flex>
-            </StyledBottomBarItem>
+            </StyledPaneBarItem>
           </Menu.Target>
           <Menu.Dropdown>
             {formats.map(format => (
@@ -170,6 +244,6 @@ export const BottomBar = () => {
           </Menu.Dropdown>
         </Menu>
       </StyledRight>
-    </StyledBottomBar>
+    </StyledPaneBar>
   );
 };

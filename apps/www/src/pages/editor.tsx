@@ -12,8 +12,8 @@ import { event as gaEvent } from "nextjs-google-analytics";
 import { LuChevronsRight } from "react-icons/lu";
 import { absoluteUrl, SEO } from "../constants/seo";
 import { darkTheme, lightTheme } from "../constants/theme";
-import { BottomBar } from "../features/editor/BottomBar";
 import { FullscreenDropzone } from "../features/editor/FullscreenDropzone";
+import { PaneBar } from "../features/editor/PaneBar";
 import { Toolbar } from "../features/editor/Toolbar";
 import useGraph from "../features/editor/views/GraphView/stores/useGraph";
 import useConfig from "../store/useConfig";
@@ -164,7 +164,7 @@ const EditorPage = ({
                   visible={!fullscreen}
                 >
                   <StyledTextEditor>
-                    <BottomBar />
+                    <PaneBar />
                     <TextEditor />
                   </StyledTextEditor>
                 </Allotment.Pane>

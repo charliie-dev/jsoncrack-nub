@@ -1001,11 +1001,51 @@ git commit -m "docs(www): note the yaml worker's dependency on the webpack build
 
 ---
 
-## Plan B 完成後的狀態
+## 執行結果（2026-08-05）
 
-- 一份 draft-07 schema 驗證四種格式：JSON 與 YAML 行內 marker，XML 與 CSV 在 PaneBar 列出 JSON Pointer 路徑
-- 編輯器面板頂部的 bar 有三態驗證狀態燈、schema 入口、格式下拉
-- 空編輯器顯示格式引導卡片，不再預載範例
-- spec 的第 3、4 塊完成，spec 列出的第八處色碼比對一併修掉
+七個 task 全部完成。97 個單元測試通過（都在 `packages/jsoncrack-react`，Plan B 沒有新增測試），
+`nub run -r build` 綠，`docker build` 出來的容器內 `/`、`/editor`、`/legal/privacy`、yaml worker
+chunk 與 monaco 的 ts.worker 全部回 200。
 
-Plan A 與 Plan B 都完成後，spec 的驗收清單 15 項可以全部走一遍。
+分支 `feat/catppuccin-canvas`，commits：
+
+| Task | Commit |
+|---|---|
+| 1 monaco-yaml worker | `64282001` |
+| 2 ajv 與 marker 接線 | `7ba17647` |
+| 3 draft-07 與說明 | `8eb89461` |
+| 5 PaneBar | `ebf3a3d1` |
+| 6 空狀態 | `60f66907` |
+| 7 turbopack 註記 | `dc19040d` |
+
+Task 4 併入 `7ba17647`，因為它和 ajv 改的是同一條 `useFile` 路徑。
+
+### 計畫與實際的四處偏差
+
+1. **Task 1 的 spike 假設對了一半。** worker 共存確實可行，`getWorker` 只答 `yaml` 標籤、其餘委派
+   回去的做法有效。但 plan 以為那是唯一障礙，實際上 webpack 端還有兩關：monaco-yaml 是
+   `type: module` 且無 exports map，Next.js 視為 ESM external 而拒絕 `new URL()` 內的 specifier，
+   需要 `transpilePackages` **加上** `experimental.esmExternals: "loose"`（逐一移除驗證過，缺一不
+   可）；接著它的 worker 又 import `monaco-editor/esm/vs/editor/editor.worker.js`，而 monaco-editor
+   自己的 exports map 把 `./*.js` 重寫成 `./esm/vs/*.js`，產生雙重前綴而解析失敗，要用 alias 指回
+   一個 map 接受的 specifier。
+
+2. **`installYamlWorker` 從 module scope 移到 `beforeMount`。** plan 的寫法在模組載入時就包裝
+   `MonacoEnvironment`，但 AMD loader 在 boot 時才寫入它自己的 environment，會把包裝蓋掉。
+
+3. **monaco-types@0.1.2 沒有 export `IDisposable`**，所以 `MonacoYaml extends IDisposable` 解析後
+   少了 `dispose`，型別上看不到但 runtime 有。monaco-yaml 沒鎖 monaco-types 版本，屬於版本配對的
+   缺口，在我們這邊補一個交集型別。
+
+4. **Plan A 漏掉 Monaco 自己的主題。** 編輯器內文一直是 VS Code 的 `vs-dark`，因為 `TextEditor`
+   把 Monaco 內建主題名稱直接當字串傳。這在 Plan B 開始前補上（`7b1de073`），加了
+   `defineCatppuccinThemes`。嚴格說是 Plan A 第 1 塊的遺漏。
+
+### 尚未驗收的項目
+
+需要在瀏覽器確認，程式碼已交付：
+
+1. 貼一份 draft-07 schema 後，YAML 出現行內 marker 且 JSON 的驗證與自動完成沒壞
+2. XML 與 CSV 在 PaneBar 列出帶 JSON Pointer 的錯誤
+3. 狀態燈四態，特別是餵 draft-04 schema 時顯示「Not checked」而**不是**綠勾
+4. 空編輯器的四張格式卡片，以及點擊後載入對應格式

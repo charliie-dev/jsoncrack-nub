@@ -5,8 +5,10 @@ import { JSONCrack } from "jsoncrack-react";
 import type { JSONCrackRef, NodeData } from "jsoncrack-react";
 import { SUPPORTED_LIMIT } from "../../../../constants/graph";
 import useConfig from "../../../../store/useConfig";
+import useFile from "../../../../store/useFile";
 import useJson from "../../../../store/useJson";
 import { useModal } from "../../../../store/useModal";
+import { EmptyState } from "./EmptyState";
 import { NotSupported } from "./NotSupported";
 import { SecureInfo } from "./SecureInfo";
 import { Toolbar } from "./Toolbar";
@@ -53,7 +55,19 @@ export const GraphView = ({ isWidget = false }: GraphProps) => {
   const rulersEnabled = useConfig(state => state.rulersEnabled);
   const darkmodeEnabled = useConfig(state => state.darkmodeEnabled);
   const json = useJson(state => state.json);
+  const contents = useFile(state => state.contents);
   const setVisible = useModal(state => state.setVisible);
+  /**
+   * Show the picker only when the canvas has nothing on it *and* the editor is empty.
+   *
+   * Checking the editor alone was wrong: with Live Transform off the graph deliberately
+   * keeps the last transformed document, so clearing the text laid the picker on top of a
+   * still-rendered graph. Checking the canvas alone would be wrong too, since a user who
+   * types `{}` gets an empty-looking graph they did not ask to have covered.
+   *
+   * Widgets are excluded outright: they are embedded with no editor to type into.
+   */
+  const showEmptyState = !isWidget && (!json || json === "{}") && contents.trim().length === 0;
   const jsonCrackRef = React.useRef<JSONCrackRef>(null);
 
   React.useEffect(() => {
@@ -83,6 +97,7 @@ export const GraphView = ({ isWidget = false }: GraphProps) => {
 
   return (
     <Box pos="relative" h="100%" w="100%">
+      {showEmptyState && <EmptyState />}
       {!isWidget && <SecureInfo />}
       {!isWidget && <Toolbar />}
       <StyledEditorWrapper
