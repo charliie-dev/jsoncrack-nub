@@ -3,9 +3,9 @@ import { Flex, Menu, Popover, Text, Tooltip } from "@mantine/core";
 import styled from "styled-components";
 import { mocha } from "jsoncrack-react/palette";
 import { event as gaEvent } from "nextjs-google-analytics";
-import { IoMdCheckmark, IoMdClose } from "react-icons/io";
+import { IoMdCheckmark } from "react-icons/io";
 import { LuPanelLeftClose } from "react-icons/lu";
-import { LuChevronDown } from "react-icons/lu";
+import { LuCheck, LuChevronDown, LuX } from "react-icons/lu";
 import { VscJson, VscListTree, VscRunAll, VscSymbolNamespace, VscTable } from "react-icons/vsc";
 import { FileFormat, formats } from "../../enums/file.enum";
 import useConfig from "../../store/useConfig";
@@ -139,6 +139,12 @@ const StyledStatusBadge = styled.span<{ $tone: LampTone }>`
   /* Punched out in the page background rather than plain white so the disc keeps working
      in both flavours. */
   color: ${({ theme }) => theme.BACKGROUND_PRIMARY};
+
+  /* Heavier than lucide's default 2. At 11px the stroked glyph reads as a hairline inside
+     the disc; this is only adjustable because these icons are stroked rather than filled. */
+  svg {
+    stroke-width: 3;
+  }
 `;
 
 type LampTone = "positive" | "negative" | "caution";
@@ -169,7 +175,7 @@ const useLampState = (): LampState => {
   const yamlValidatorError = useFile(state => state.yamlValidatorError);
 
   if (error) {
-    return { tone: "negative", glyph: <IoMdClose />, label: "Invalid", detail: error, count: null };
+    return { tone: "negative", glyph: <LuX />, label: "Invalid", detail: error, count: null };
   }
 
   // A YAML document whose validator never loaded has not been checked, whatever the
@@ -204,14 +210,14 @@ const useLampState = (): LampState => {
   if (issues.length > 0) {
     return {
       tone: "negative",
-      glyph: <IoMdClose />,
+      glyph: <LuX />,
       label: `${issues.length} problem${issues.length === 1 ? "" : "s"}`,
       detail: issues.map(issue => `${issue.path}  ${issue.message}`).join("\n"),
       count: issues.length,
     };
   }
 
-  return { tone: "positive", glyph: <IoMdCheckmark />, label: "Valid", detail: null, count: null };
+  return { tone: "positive", glyph: <LuCheck />, label: "Valid", detail: null, count: null };
 };
 
 export const PaneBar = () => {

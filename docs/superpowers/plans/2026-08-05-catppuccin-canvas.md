@@ -1611,10 +1611,10 @@ importer`，不指出欄位。
 現有兩道防線：`parser.test.ts` 斷言 node 與 edge 都不含 null 值，以及 `EdgeData.text` 的型別移除
 `| null`。`calculateNodeSize` 另有有限值防呆，NaN 寬度會以相同方式炸掉 ELK。
 
-### 尚未驗收的項目
+### 間距只針對 RIGHT 調校
 
-- 四個 `layoutDirection`（`RIGHT` / `LEFT` / `DOWN` / `UP`）下的觀感。間距只在預設的 `RIGHT`
-  下調過，其餘三個方向未逐一確認
+使用者決定只調預設方向。`LEFT` / `DOWN` / `UP` 仍可用，但那三個方向的疏密沒有逐一看過，切過去
+可能偏鬆或偏緊。
 
 ### 後續工作
 
