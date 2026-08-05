@@ -14,9 +14,12 @@ export const layoutOptions: Record<string, string> = {
   "elk.layered.compaction.postCompaction.strategy": "EDGE_LENGTH",
   "elk.layered.nodePlacement.strategy": "NETWORK_SIMPLEX",
   "elk.layered.crossingMinimization.strategy": "LAYER_SWEEP",
-  "elk.layered.spacing.nodeNodeBetweenLayers": "80",
+  // Tightened from 80/24 against the reference UI, which packs layers and siblings closer
+  // than the first pass did. Estimated from screenshots: the reference is closed source, so
+  // these are not its actual ELK values.
+  "elk.layered.spacing.nodeNodeBetweenLayers": "60",
   "elk.layered.spacing.edgeNodeBetweenLayers": "16",
-  "elk.spacing.nodeNode": "24",
+  "elk.spacing.nodeNode": "14",
   "elk.spacing.edgeEdge": "12",
   "elk.spacing.edgeLabel": "15",
 };
