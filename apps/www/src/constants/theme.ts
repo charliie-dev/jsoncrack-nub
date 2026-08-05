@@ -1,110 +1,88 @@
-const fixedColors = {
-  CRIMSON: "#DC143C",
-  BLURPLE: "#5865F2",
-  PURPLE: "#9036AF",
-  FULL_WHITE: "#FFFFFF",
-  BLACK: "#202225",
-  BLACK_DARK: "#2C2F33",
-  BLACK_LIGHT: "#2F3136",
-  BLACK_PRIMARY: "#36393f",
-  DARK_SALMON: "#E9967A",
-  DANGER: "hsl(359,calc(var(--saturation-factor, 1)*66.7%),54.1%)",
-  LIGHTGREEN: "#90EE90",
-  SEAGREEN: "#11883B",
-  ORANGE: "#FAA81A",
-  SILVER: "#B9BBBE",
-  PRIMARY: "#4D4D4D",
-  TEXT_DANGER: "#db662e",
-};
+import { latte, mocha, type CatppuccinPalette } from "jsoncrack-react/palette";
 
-const nodeColors = {
-  dark: {
-    NODE_COLORS: {
-      TEXT: "#DCE5E7",
-      NODE_KEY: "#59b8ff",
-      NODE_VALUE: "#DCE5E7",
-      INTEGER: "#e8c479",
-      NULL: "#939598",
-      BOOL: {
-        FALSE: "#F85C50",
-        TRUE: "#00DC7D",
-      },
-      PARENT_ARR: "#FC9A40",
-      PARENT_OBJ: "#59b8ff",
-      CHILD_COUNT: "white",
-      DIVIDER: "#383838",
-    },
+/**
+ * Colours that used to be hard-coded Discord values. Mapped onto the palette so nothing
+ * on screen falls outside Catppuccin. Names are kept because call sites reference them.
+ */
+const fixedColors = (palette: CatppuccinPalette) => ({
+  CRIMSON: palette.red,
+  BLURPLE: palette.blue,
+  PURPLE: palette.mauve,
+  FULL_WHITE: palette.text,
+  BLACK: palette.crust,
+  BLACK_DARK: palette.mantle,
+  BLACK_LIGHT: palette.base,
+  BLACK_PRIMARY: palette.surface0,
+  DARK_SALMON: palette.maroon,
+  DANGER: palette.red,
+  LIGHTGREEN: palette.green,
+  SEAGREEN: palette.teal,
+  ORANGE: palette.peach,
+  SILVER: palette.subtext0,
+  PRIMARY: palette.surface1,
+  TEXT_DANGER: palette.maroon,
+});
+
+/**
+ * Colours for the tree view's labels and values.
+ *
+ * Not the same set as the canvas theme in jsoncrack-react: the tree distinguishes object
+ * from array containers, which the canvas does not, so PARENT_OBJ and PARENT_ARR live
+ * only here. The overlapping keys deliberately resolve to the same palette entries the
+ * canvas uses, so a value reads the same colour in both views.
+ */
+const nodeColors = (palette: CatppuccinPalette) => ({
+  TEXT: palette.text,
+  NODE_KEY: palette.blue,
+  NODE_VALUE: palette.text,
+  INTEGER: palette.peach,
+  NULL: palette.overlay0,
+  BOOL: {
+    FALSE: palette.red,
+    TRUE: palette.green,
   },
-  light: {
-    NODE_COLORS: {
-      TEXT: "#000",
-      NODE_KEY: "#761CEA",
-      NODE_VALUE: "#535353",
-      INTEGER: "#FD0079",
-      NULL: "#afafaf",
-      BOOL: {
-        FALSE: "#FF0000",
-        TRUE: "#748700",
-      },
-      PARENT_ARR: "#FF6B00",
-      PARENT_OBJ: "#761CEA",
-      CHILD_COUNT: "#535353",
-      DIVIDER: "#e6e6e6",
-    },
-  },
-};
+  PARENT_ARR: palette.yellow,
+  PARENT_OBJ: palette.blue,
+  CHILD_COUNT: palette.subtext0,
+  DIVIDER: palette.surface0,
+});
 
-export const darkTheme = {
-  ...fixedColors,
-  ...nodeColors.dark,
-  BLACK_SECONDARY: "#23272A",
-  SILVER_DARK: "#4D4D4D",
-  NODE_KEY: "#FAA81A",
-  OBJECT_KEY: "#59b8ff",
-  SIDEBAR_ICONS: "#8B8E90",
+const buildTheme = (palette: CatppuccinPalette, isDark: boolean) => ({
+  ...fixedColors(palette),
+  NODE_COLORS: nodeColors(palette),
+  /**
+   * Whether this theme is the dark flavour.
+   *
+   * Several call sites used to answer this by comparing BACKGROUND_SECONDARY against the
+   * literal "#f2f3f5". That silently selected the light-side value for every shadow and
+   * border the moment the palette changed.
+   */
+  IS_DARK: isDark,
+  BLACK_SECONDARY: palette.mantle,
+  SILVER_DARK: palette.surface2,
+  NODE_KEY: palette.peach,
+  OBJECT_KEY: palette.blue,
+  SIDEBAR_ICONS: palette.overlay1,
 
-  INTERACTIVE_NORMAL: "#b9bbbe",
-  INTERACTIVE_HOVER: "#dcddde",
-  INTERACTIVE_ACTIVE: "#fff",
-  BACKGROUND_NODE: "#2B2C3E",
-  BACKGROUND_TERTIARY: "#202225",
-  BACKGROUND_SECONDARY: "#2f3136",
-  TOOLBAR_BG: "#262626",
-  BACKGROUND_PRIMARY: "#36393f",
-  BACKGROUND_MODIFIER_ACCENT: "rgba(79,84,92,0.48)",
-  MODAL_BACKGROUND: "#36393E",
-  TEXT_NORMAL: "#dcddde",
-  TEXT_POSITIVE: "hsl(139,calc(var(--saturation-factor, 1)*51.6%),52.2%)",
-  GRID_BG_COLOR: "#141414",
-  GRID_COLOR_PRIMARY: "#1c1b1b",
-  GRID_COLOR_SECONDARY: "#191919",
-};
+  INTERACTIVE_NORMAL: palette.subtext0,
+  INTERACTIVE_HOVER: palette.subtext1,
+  INTERACTIVE_ACTIVE: palette.text,
+  BACKGROUND_NODE: palette.mantle,
+  BACKGROUND_TERTIARY: palette.crust,
+  BACKGROUND_SECONDARY: palette.mantle,
+  TOOLBAR_BG: palette.surface0,
+  BACKGROUND_PRIMARY: palette.base,
+  BACKGROUND_MODIFIER_ACCENT: palette.surface0,
+  MODAL_BACKGROUND: palette.base,
+  TEXT_NORMAL: palette.text,
+  TEXT_POSITIVE: palette.green,
+  GRID_BG_COLOR: palette.crust,
+  GRID_COLOR_PRIMARY: palette.mantle,
+  GRID_COLOR_SECONDARY: palette.base,
+});
 
-export const lightTheme = {
-  ...fixedColors,
-  ...nodeColors.light,
-  BLACK_SECONDARY: "#F2F2F2",
-  SILVER_DARK: "#CCCCCC",
-  NODE_KEY: "#DC3790",
-  OBJECT_KEY: "#0260E8",
-  SIDEBAR_ICONS: "#6D6E70",
-
-  INTERACTIVE_NORMAL: "#4f5660",
-  INTERACTIVE_HOVER: "#2e3338",
-  INTERACTIVE_ACTIVE: "#060607",
-  BACKGROUND_NODE: "#F6F8FA",
-  BACKGROUND_TERTIARY: "#e3e5e8",
-  BACKGROUND_SECONDARY: "#f2f3f5",
-  TOOLBAR_BG: "#ECECEC",
-  BACKGROUND_PRIMARY: "#FFFFFF",
-  BACKGROUND_MODIFIER_ACCENT: "rgba(106,116,128,0.24)",
-  MODAL_BACKGROUND: "#FFFFFF",
-  TEXT_NORMAL: "#2e3338",
-  TEXT_POSITIVE: "#008736",
-  GRID_BG_COLOR: "#f7f7f7",
-  GRID_COLOR_PRIMARY: "#ebe8e8",
-  GRID_COLOR_SECONDARY: "#f2eeee",
-};
+export const darkTheme = buildTheme(mocha, true);
+export const lightTheme = buildTheme(latte, false);
 
 const themeDs = {
   ...lightTheme,

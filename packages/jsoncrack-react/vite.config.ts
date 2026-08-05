@@ -9,9 +9,13 @@ export default defineConfig({
   plugins: [react()],
   build: {
     lib: {
-      entry: resolve(__dirname, "src/index.ts"),
+      // Two entries: the full component, and a palette-only module with no renderer
+      // dependencies so hosts can read colours without loading reaflow on the server.
+      entry: {
+        index: resolve(__dirname, "src/index.ts"),
+        palette: resolve(__dirname, "src/palette.ts"),
+      },
       formats: ["es"],
-      fileName: "index",
     },
     rolldownOptions: {
       external: [

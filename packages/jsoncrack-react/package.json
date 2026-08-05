@@ -26,6 +26,10 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./palette": {
+      "types": "./dist/palette.d.ts",
+      "import": "./dist/palette.js"
+    },
     "./style.css": "./dist/index.css"
   },
   "files": [

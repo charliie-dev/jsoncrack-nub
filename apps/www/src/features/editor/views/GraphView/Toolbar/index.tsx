@@ -25,29 +25,19 @@ import useGraph from "../stores/useGraph";
 const glassSurface = css`
   border-radius: 14px;
   background: ${({ theme }) =>
-    theme.BACKGROUND_SECONDARY === "#f2f3f5"
-      ? "rgba(255, 255, 255, 0.72)"
-      : "rgba(28, 28, 30, 0.72)"};
+    theme.IS_DARK ? "rgba(28, 28, 30, 0.72)" : "rgba(255, 255, 255, 0.72)"};
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid
-    ${({ theme }) =>
-      theme.BACKGROUND_SECONDARY === "#f2f3f5"
-        ? "rgba(0, 0, 0, 0.06)"
-        : "rgba(255, 255, 255, 0.08)"};
+    ${({ theme }) => (theme.IS_DARK ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.06)")};
   box-shadow:
     ${({ theme }) =>
-      theme.BACKGROUND_SECONDARY === "#f2f3f5"
-        ? "inset 0 1px 0 rgba(255, 255, 255, 0.9)"
-        : "inset 0 1px 0 rgba(255, 255, 255, 0.06)"},
-    0 1px 2px
-      ${({ theme }) =>
-        theme.BACKGROUND_SECONDARY === "#f2f3f5" ? "rgba(0, 0, 0, 0.04)" : "rgba(0, 0, 0, 0.25)"},
+      theme.IS_DARK
+        ? "inset 0 1px 0 rgba(255, 255, 255, 0.06)"
+        : "inset 0 1px 0 rgba(255, 255, 255, 0.9)"},
+    0 1px 2px ${({ theme }) => (theme.IS_DARK ? "rgba(0, 0, 0, 0.25)" : "rgba(0, 0, 0, 0.04)")},
     0 8px 24px -4px
-      ${({ theme }) =>
-        theme.BACKGROUND_SECONDARY === "#f2f3f5"
-          ? "rgba(15, 23, 42, 0.12)"
-          : "rgba(0, 0, 0, 0.45)"};
+      ${({ theme }) => (theme.IS_DARK ? "rgba(0, 0, 0, 0.45)" : "rgba(15, 23, 42, 0.12)")};
 `;
 
 const StyledToolbarDock = styled.div`
@@ -76,9 +66,7 @@ const StyledToolbar = styled.div`
 
   [data-mantine-divider] {
     border-color: ${({ theme }) =>
-      theme.BACKGROUND_SECONDARY === "#f2f3f5"
-        ? "rgba(15, 23, 42, 0.1)"
-        : "rgba(255, 255, 255, 0.08)"};
+      theme.IS_DARK ? "rgba(255, 255, 255, 0.08)" : "rgba(15, 23, 42, 0.1)"};
     height: 18px;
     align-self: center;
   }

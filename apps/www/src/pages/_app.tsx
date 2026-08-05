@@ -7,6 +7,7 @@ import "@mantine/core/styles.css";
 import { CodeHighlightAdapterProvider, createShikiAdapter } from "@mantine/code-highlight";
 import "@mantine/code-highlight/styles.css";
 import { ThemeProvider } from "styled-components";
+import { mixHex, mocha } from "jsoncrack-react/palette";
 import "jsoncrack-react/style.css";
 import { SoftwareApplicationJsonLd } from "next-seo";
 import { generateDefaultSeo } from "next-seo/pages";
@@ -52,6 +53,24 @@ async function loadShiki() {
 
 const shikiAdapter = createShikiAdapter(loadShiki);
 
+/**
+ * Mantine wants ten steps per colour. Interpolate from the flavour base to the accent so
+ * every shade stays inside the palette instead of shipping a second hand-picked ramp.
+ */
+const shades = (accent: string, base: string) =>
+  Array.from({ length: 10 }, (_, index) => mixHex(accent, base, (index + 1) / 10)) as [
+    string,
+    string,
+    string,
+    string,
+    string,
+    string,
+    string,
+    string,
+    string,
+    string,
+  ];
+
 const theme = createTheme({
   autoContrast: true,
   fontSmoothing: false,
@@ -60,24 +79,14 @@ const theme = createTheme({
   fontFamily:
     'system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol","Noto Color Emoji"',
   defaultGradient: {
-    from: "#388cdb",
-    to: "#0f037f",
+    from: mocha.blue,
+    to: mocha.mauve,
     deg: 180,
   },
   primaryShade: 8,
+  primaryColor: "mauve",
   colors: {
-    brightBlue: [
-      "#e6f2ff",
-      "#cee1ff",
-      "#9bc0ff",
-      "#649dff",
-      "#3980fe",
-      "#1d6dfe",
-      "#0964ff",
-      "#0054e4",
-      "#004acc",
-      "#003fb5",
-    ],
+    mauve: shades(mocha.mauve, mocha.base),
   },
   radius: {
     lg: "12px",
@@ -132,8 +141,8 @@ function JSONCrackApp({ Component, pageProps }: AppProps) {
               }}
               toastOptions={{
                 style: {
-                  background: "#4D4D4D",
-                  color: "#B9BBBE",
+                  background: mocha.surface0,
+                  color: mocha.text,
                   borderRadius: 4,
                 },
               }}

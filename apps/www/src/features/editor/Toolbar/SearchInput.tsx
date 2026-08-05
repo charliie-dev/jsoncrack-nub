@@ -19,14 +19,9 @@ const Row = styled.div`
 const Counter = styled.div<{ $none?: boolean }>`
   font-size: 11px;
   font-weight: 500;
-  color: ${({ theme, $none }) =>
-    $none
-      ? theme.BACKGROUND_SECONDARY === "#f2f3f5"
-        ? "#dc2626"
-        : "#f87171"
-      : theme.BACKGROUND_SECONDARY === "#f2f3f5"
-        ? "rgba(15, 23, 42, 0.55)"
-        : "rgba(255, 255, 255, 0.55)"};
+  /* Both branches resolve to palette tokens that already differ per flavour, so this no
+     longer needs to know whether the theme is dark. */
+  color: ${({ theme, $none }) => ($none ? theme.CRIMSON : theme.INTERACTIVE_NORMAL)};
   white-space: nowrap;
   padding: 0 4px;
   letter-spacing: 0.2px;
