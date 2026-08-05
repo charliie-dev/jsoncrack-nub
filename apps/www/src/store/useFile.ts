@@ -137,8 +137,8 @@ const useFile = create<FileStates & JsonActions>()((set, get) => ({
       const isFetchURL = window.location.href.includes("?");
       const json = await contentToJson(get().contents, get().format);
 
-      // JSON and YAML are validated inline by Monaco and monaco-yaml respectively, so
-      // running ajv over them too would report every violation twice.
+      // JSON is validated inline by Monaco and YAML by yamlSchemaMarkers, so running ajv
+      // over them here as well would report every violation twice.
       const usesAjv = get().format === FileFormat.XML || get().format === FileFormat.CSV;
       set({
         schemaValidation: usesAjv ? validateAgainstSchema(json, get().jsonSchema) : SCHEMA_OFF,

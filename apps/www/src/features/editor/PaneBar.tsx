@@ -3,12 +3,10 @@ import { Flex, Menu, Popover, Text, Tooltip } from "@mantine/core";
 import styled from "styled-components";
 import { mocha } from "jsoncrack-react/palette";
 import { event as gaEvent } from "nextjs-google-analytics";
-import { IoMdCheckmark } from "react-icons/io";
+import { IoMdCheckmark, IoMdClose } from "react-icons/io";
 import { LuPanelLeftClose } from "react-icons/lu";
 import { LuChevronDown } from "react-icons/lu";
 import {
-  VscCheck,
-  VscError,
   VscJson,
   VscListTree,
   VscRunAll,
@@ -16,7 +14,6 @@ import {
   VscSync,
   VscSyncIgnored,
   VscTable,
-  VscWarning,
 } from "react-icons/vsc";
 import { FileFormat, formats } from "../../enums/file.enum";
 import useConfig from "../../store/useConfig";
@@ -99,12 +96,39 @@ const FORMAT_ICONS: Record<FileFormat, React.ReactNode> = {
   [FileFormat.CSV]: <VscTable />,
 };
 
+/**
+ * Filled circle with a symbol punched out of it, matching the reference UI.
+ *
+ * A bare outline icon reads as one more toolbar glyph; the solid disc is what makes the
+ * validation state legible at a glance without a text label beside it.
+ */
+const StyledStatusBadge = styled.span<{ $tone: LampTone }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  background: ${({ theme, $tone }) =>
+    $tone === "positive" ? theme.LIGHTGREEN : $tone === "negative" ? theme.CRIMSON : theme.ORANGE};
+  /* Punched out in the page background rather than plain white so the disc keeps working
+     in both flavours. */
+  color: ${({ theme }) => theme.BACKGROUND_PRIMARY};
+`;
+
+type LampTone = "positive" | "negative" | "caution";
+
 type LampState = {
-  icon: React.ReactNode;
+  tone: LampTone;
+  glyph: React.ReactNode;
   label: string;
   /** Popover body. Null means the state needs no explanation, which is the passing case. */
   detail: string | null;
-  /** Shown beside the icon when there is a number worth surfacing without a hover. */
+  /** Shown beside the badge when there is a number worth surfacing without a hover. */
   count: number | null;
 };
 
@@ -124,18 +148,25 @@ const useLampState = (): LampState => {
   const yamlValidatorError = useFile(state => state.yamlValidatorError);
 
   if (error) {
-    return { icon: <VscError color="red" />, label: "Invalid", detail: error, count: null };
+    return { tone: "negative", glyph: <IoMdClose />, label: "Invalid", detail: error, count: null };
   }
 
   // A YAML document whose validator never loaded has not been checked, whatever the
   // absence of markers might otherwise suggest.
   if (format === FileFormat.YAML && yamlValidatorError) {
-    return { icon: <VscWarning />, label: "Not checked", detail: yamlValidatorError, count: null };
+    return {
+      tone: "caution",
+      glyph: "!",
+      label: "Not checked",
+      detail: yamlValidatorError,
+      count: null,
+    };
   }
 
   if (schemaValidation.status === "unavailable") {
     return {
-      icon: <VscWarning />,
+      tone: "caution",
+      glyph: "!",
       label: "Not checked",
       detail: schemaValidation.reason ?? "The schema could not be compiled",
       count: null,
@@ -151,19 +182,15 @@ const useLampState = (): LampState => {
 
   if (issues.length > 0) {
     return {
-      icon: <VscError color="red" />,
+      tone: "negative",
+      glyph: <IoMdClose />,
       label: `${issues.length} problem${issues.length === 1 ? "" : "s"}`,
       detail: issues.map(issue => `${issue.path}  ${issue.message}`).join("\n"),
       count: issues.length,
     };
   }
 
-  return {
-    icon: <VscCheck color="var(--mantine-color-green-6)" />,
-    label: "Valid",
-    detail: null,
-    count: null,
-  };
+  return { tone: "positive", glyph: <IoMdCheckmark />, label: "Valid", detail: null, count: null };
 };
 
 export const PaneBar = () => {
@@ -207,7 +234,7 @@ export const PaneBar = () => {
             <Popover width="auto" shadow="md" position="bottom" withArrow>
               <Popover.Target>
                 <Flex align="center" gap={4}>
-                  {lamp.icon}
+                  <StyledStatusBadge $tone={lamp.tone}>{lamp.glyph}</StyledStatusBadge>
                   {lamp.count !== null && (
                     <Text fw={600} fz="xs">
                       {lamp.count}
@@ -226,7 +253,9 @@ export const PaneBar = () => {
             </Popover>
           ) : (
             <Tooltip label={lamp.label} position="bottom" withArrow openDelay={400}>
-              <Flex align="center">{lamp.icon}</Flex>
+              <Flex align="center">
+                <StyledStatusBadge $tone={lamp.tone}>{lamp.glyph}</StyledStatusBadge>
+              </Flex>
             </Tooltip>
           )}
         </StyledPaneBarItem>
