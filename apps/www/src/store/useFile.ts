@@ -6,6 +6,12 @@ import exampleJson from "../data/example.json";
 import { FileFormat } from "../enums/file.enum";
 import { isIframe } from "../lib/utils/helpers";
 import { contentToJson, jsonToContent } from "../lib/utils/jsonAdapter";
+import {
+  SCHEMA_OFF,
+  validateAgainstSchema,
+  type SchemaIssue,
+  type SchemaValidation,
+} from "../lib/utils/validateAgainstSchema";
 import useConfig from "./useConfig";
 import useJson from "./useJson";
 
@@ -32,6 +38,7 @@ interface JsonActions {
   clear: () => void;
   setFile: (fileData: File) => void;
   setJsonSchema: (jsonSchema: object | null) => void;
+  setMarkers: (markers: SchemaIssue[]) => void;
   checkEditorSession: (url: Query, widget?: boolean) => void;
 }
 
@@ -54,6 +61,10 @@ const initialStates = {
   error: null as any,
   hasChanges: false,
   jsonSchema: null as object | null,
+  /** Result of the ajv pass. Only XML and CSV use it; JSON and YAML produce Monaco markers. */
+  schemaValidation: SCHEMA_OFF as SchemaValidation,
+  /** Monaco's current diagnostics, kept in full so the pane can show a count. */
+  markers: [] as SchemaIssue[],
 };
 
 export type FileStates = typeof initialStates;
@@ -74,7 +85,13 @@ const useFile = create<FileStates & JsonActions>()((set, get) => ({
     set({ contents: "" });
     useJson.getState().clear();
   },
-  setJsonSchema: jsonSchema => set({ jsonSchema }),
+  // Re-run immediately: waiting for the next keystroke would leave the lamp showing the
+  // previous schema's verdict.
+  setJsonSchema: jsonSchema => {
+    set({ jsonSchema });
+    get().setContents({ hasChanges: false, skipUpdate: true });
+  },
+  setMarkers: markers => set({ markers }),
   setFile: fileData => {
     set({ fileData, format: fileData.format || FileFormat.JSON });
     get().setContents({ contents: fileData.content, hasChanges: false });
@@ -109,6 +126,13 @@ const useFile = create<FileStates & JsonActions>()((set, get) => ({
       const isFetchURL = window.location.href.includes("?");
       const json = await contentToJson(get().contents, get().format);
 
+      // JSON and YAML are validated inline by Monaco and monaco-yaml respectively, so
+      // running ajv over them too would report every violation twice.
+      const usesAjv = get().format === FileFormat.XML || get().format === FileFormat.CSV;
+      set({
+        schemaValidation: usesAjv ? validateAgainstSchema(json, get().jsonSchema) : SCHEMA_OFF,
+      });
+
       if (!useConfig.getState().liveTransformEnabled && skipUpdate) return;
 
       if (get().hasChanges && contents && contents.length < 80_000 && !isIframe() && !isFetchURL) {
@@ -119,6 +143,9 @@ const useFile = create<FileStates & JsonActions>()((set, get) => ({
 
       debouncedUpdateJson(json);
     } catch (error: any) {
+      // The document did not parse, so the previous verdict describes text that no longer
+      // exists. Clearing it stops the lamp reporting a stale pass.
+      set({ schemaValidation: SCHEMA_OFF });
       if (error?.mark?.snippet) return set({ error: error.mark.snippet });
       if (error?.message) set({ error: error.message });
       useJson.setState({ loading: false });

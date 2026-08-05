@@ -1,6 +1,6 @@
 import React from "react";
 import type { ModalProps } from "@mantine/core";
-import { Stack, Modal, Button, Text, Anchor, Group, Paper } from "@mantine/core";
+import { Stack, Modal, Button, Text, Anchor, Code, Group, Paper } from "@mantine/core";
 import Editor from "@monaco-editor/react";
 import { event as gaEvent } from "nextjs-google-analytics";
 import { toast } from "react-hot-toast";
@@ -17,7 +17,7 @@ export const SchemaModal = ({ opened, onClose }: ModalProps) => {
   const [schema, setSchema] = React.useState(
     JSON.stringify(
       {
-        $schema: "http://json-schema.org/draft-04/schema#",
+        $schema: "http://json-schema.org/draft-07/schema#",
         title: "Product",
         description: "A product from catalog",
         type: "object",
@@ -57,7 +57,15 @@ export const SchemaModal = ({ opened, onClose }: ModalProps) => {
   return (
     <Modal title="JSON Schema" size="lg" opened={opened} onClose={onClose} centered>
       <Stack>
-        <Text fz="sm">Any validation failures are shown at the bottom toolbar of pane.</Text>
+        <Text fz="sm">
+          Draft-07 schemas only. JSON and YAML show violations inline in the editor; XML and CSV
+          list them in the pane header, addressed by JSON Pointer.
+        </Text>
+        <Text fz="sm" c="dimmed">
+          XML is validated after conversion to JSON, not as XML. Attributes become keys prefixed
+          with <Code>$</Code>, and a single child element is an object while repeated ones are an
+          array, so write the schema against that shape.
+        </Text>
         <Anchor
           fz="sm"
           target="_blank"

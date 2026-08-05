@@ -8,7 +8,9 @@ import Editor, {
   type OnMount,
   useMonaco,
 } from "@monaco-editor/react";
+import type { MonacoYaml } from "monaco-yaml";
 import { defineCatppuccinThemes, MONACO_THEME } from "../../lib/utils/monacoTheme";
+import { installYamlWorker } from "../../lib/utils/monacoYamlWorker";
 import useConfig from "../../store/useConfig";
 import useFile from "../../store/useFile";
 
@@ -28,6 +30,15 @@ loader.config({
   },
 });
 
+/**
+ * `configureMonacoYaml` returns a `MonacoYaml`, declared as `extends IDisposable` from
+ * monaco-types. monaco-types@0.1.2 does not actually export `IDisposable`, so the
+ * inherited `dispose` vanishes from the resolved type even though it exists at runtime.
+ * monaco-yaml pins no version for monaco-types, so this is a version-pairing gap rather
+ * than something wrong on our side.
+ */
+type DisposableMonacoYaml = MonacoYaml & { dispose: () => void };
+
 const editorOptions: EditorProps["options"] = {
   tabSize: 2,
   formatOnType: true,
@@ -42,6 +53,7 @@ const TextEditor = () => {
   const contents = useFile(state => state.contents);
   const setContents = useFile(state => state.setContents);
   const setError = useFile(state => state.setError);
+  const setMarkers = useFile(state => state.setMarkers);
   const jsonSchema = useFile(state => state.jsonSchema);
   const getHasChanges = useFile(state => state.getHasChanges);
   const theme = useConfig(state =>
@@ -71,6 +83,39 @@ const TextEditor = () => {
   }, [jsonDefaults, jsonSchema]);
 
   React.useEffect(() => {
+    if (!monaco) return;
+
+    let disposed = false;
+    let handle: DisposableMonacoYaml | undefined;
+
+    // monaco-yaml allows only one configured instance at a time, so the handle is disposed
+    // and rebuilt when the schema changes rather than layering a second one. Dynamic import
+    // keeps its worker out of the initial bundle for the sessions that never touch YAML.
+    void import("monaco-yaml").then(({ configureMonacoYaml }) => {
+      if (disposed) return;
+
+      handle = configureMonacoYaml(monaco, {
+        validate: true,
+        enableSchemaRequest: true,
+        ...(jsonSchema && {
+          schemas: [
+            {
+              uri: "http://example.com/schema.json",
+              fileMatch: ["*"],
+              schema: jsonSchema,
+            },
+          ],
+        }),
+      }) as DisposableMonacoYaml;
+    });
+
+    return () => {
+      disposed = true;
+      handle?.dispose();
+    };
+  }, [monaco, jsonSchema]);
+
+  React.useEffect(() => {
     const beforeunload = (e: BeforeUnloadEvent) => {
       if (getHasChanges()) {
         const confirmationMessage =
@@ -90,6 +135,7 @@ const TextEditor = () => {
 
   const handleBeforeMount: BeforeMount = useCallback(monacoInstance => {
     defineCatppuccinThemes(monacoInstance);
+    installYamlWorker();
   }, []);
 
   const handleMount: OnMount = useCallback(editor => {
@@ -109,7 +155,18 @@ const TextEditor = () => {
           options={editorOptions}
           beforeMount={handleBeforeMount}
           onMount={handleMount}
-          onValidate={errors => setError(errors[0]?.message || "")}
+          onValidate={markers => {
+            // Monaco reports line and column rather than a JSON Pointer. The pane shows
+            // that position verbatim: JSON and YAML violations are already underlined in
+            // the editor, so this list is a count and a summary, not the way to find them.
+            setMarkers(
+              markers.map(marker => ({
+                path: `${marker.startLineNumber}:${marker.startColumn}`,
+                message: marker.message,
+              }))
+            );
+            setError(markers[0]?.message || "");
+          }}
           onChange={contents => setContents({ contents, skipUpdate: true })}
           loading={<LoadingOverlay visible />}
         />
