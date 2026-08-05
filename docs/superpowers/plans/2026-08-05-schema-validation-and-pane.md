@@ -1020,7 +1020,38 @@ chunk 與 monaco 的 ts.worker 全部回 200。
 
 Task 4 併入 `7ba17647`，因為它和 ajv 改的是同一條 `useFile` 路徑。
 
-### 計畫與實際的四處偏差
+### 最大的偏差：YAML 驗證換掉了整個引擎
+
+Plan 選 monaco-yaml 是為了行內紅波浪線。實作後證實它在這個專案完全無法運作，而且原因不是設定。
+
+追查經過，每一步都由實際證據推翻上一步的結論：
+
+1. worker 共存的 spike 看似成功，`configureMonacoYaml` 不拋錯，但 YAML 顯示綠勾、yaml worker
+   chunk 從未被下載。
+2. console 顯示 `Missing requestHandler or method: doValidation`，而 `getModels()` 回
+   `['yaml']`，證明 language id 正確、marker provider 有掛上，是 worker 那端不對。
+3. 一度判斷是 AMD 載入的 monaco 與 monaco-yaml 的 worker 機制衝突，於是改成 bundle monaco。
+   **這個判斷是錯的**，bundle 之後仍然失敗，只是換了錯誤訊息。
+4. 真正的根因：`monaco-worker-manager` 呼叫
+   `monaco.editor.createWebWorker({ moduleId, label })`，而 monaco **0.53** 把這個 API 換成
+   `createWebWorker({ worker, host?, keepIdleModels? })`，改由呼叫端自備 `Worker`。0.56 拿到
+   不認得的 descriptor，警告 `Could not create web worker(s)`，退回主執行緒跑通用 editor worker。
+   monaco-yaml 宣告 peer `monaco-editor >=0.36`，這個範圍是錯的。用 unpkg 逐版比對 `monaco.d.ts`
+   確認分界在 0.52.2 與 0.53.0 之間。
+
+最終做法是 ajv 加 `yaml` 套件的 AST，全程主執行緒、無 worker：`parseDocument` 取得帶 range 的
+AST，ajv 驗證 `doc.toJS()`，每個錯誤的 JSON Pointer 經 `Document.getIn` 反查回 source range，
+再 `setModelMarkers`。行內波浪線與行號都有，且核心是純函式。
+
+因此 `apps/www` 加了 vitest（9 個測試）。spec 當初排除測試框架是衡量 UI 工作時的決定；這裡是
+offset 運算，錯了會安靜地畫錯行。兩個測試守著最容易錯的地方：陣列索引必須轉成數字，否則 AST 查找
+會 miss；缺少的 required 屬性沒有自己的節點，range 要往上取最近的祖先。
+
+monaco 維持 bundled。雖然 bundle 不是解決 YAML 的關鍵，但它順帶除掉了 `copy-monaco.mjs`、
+`public/monaco` 與版本漂移的風險，保留下來比還原划算。`esmExternals: "loose"` 與 editor.worker
+alias 只為 monaco-yaml 存在，已移除；`transpilePackages` 留著，改為處理 monaco 自己的 CSS import。
+
+### 其他四處偏差
 
 1. **Task 1 的 spike 假設對了一半。** worker 共存確實可行，`getWorker` 只答 `yaml` 標籤、其餘委派
    回去的做法有效。但 plan 以為那是唯一障礙，實際上 webpack 端還有兩關：monaco-yaml 是
@@ -1041,11 +1072,15 @@ Task 4 併入 `7ba17647`，因為它和 ajv 改的是同一條 `useFile` 路徑�
    把 Monaco 內建主題名稱直接當字串傳。這在 Plan B 開始前補上（`7b1de073`），加了
    `defineCatppuccinThemes`。嚴格說是 Plan A 第 1 塊的遺漏。
 
-### 尚未驗收的項目
+### 驗收結果
 
-需要在瀏覽器確認，程式碼已交付：
+四項都由使用者在瀏覽器確認通過：
 
-1. 貼一份 draft-07 schema 後，YAML 出現行內 marker 且 JSON 的驗證與自動完成沒壞
-2. XML 與 CSV 在 PaneBar 列出帶 JSON Pointer 的錯誤
-3. 狀態燈四態，特別是餵 draft-04 schema 時顯示「Not checked」而**不是**綠勾
-4. 空編輯器的四張格式卡片，以及點擊後載入對應格式
+1. YAML 貼不符 schema 的內容出現行內紅波浪線，符合的顯示綠勾；JSON 的驗證與自動完成未受
+   monaco 載入方式變更影響
+2. XML 與 CSV 在 PaneBar 列出帶 JSON Pointer 的錯誤（`/0 must have required property 'email'`）
+3. 餵 draft-04 schema 時顯示「Not checked」並附 ajv 原始訊息，不是綠勾
+4. 空編輯器顯示四張格式卡片，點擊載入對應格式
+
+驗收過程中修掉的三個問題：格式卡片會蓋在 Live Transform 關閉時仍保留的舊圖上；YAML 驗證器失效時
+顯示假綠勾；SchemaModal 誤稱只支援 draft-07（那只是 ajv 路徑的限制）。

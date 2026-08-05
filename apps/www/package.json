@@ -4,16 +4,16 @@
   "version": "0.0.0",
   "license": "Apache-2.0",
   "scripts": {
-    "prepare:monaco": "node scripts/copy-monaco.mjs",
-    "dev": "nub run prepare:monaco && next dev --webpack",
-    "build": "nub run prepare:monaco && next build --webpack",
+    "dev": "next dev --webpack",
+    "build": "next build --webpack",
     "postbuild": "next-sitemap --config next-sitemap.config.js",
     "start": "serve out --listen 3000",
     "lint": "tsc --project tsconfig.json && eslint src && prettier --check src",
     "typecheck": "tsc --project tsconfig.json --noEmit",
-    "clean": "rm -rf .next out public/monaco public/robots.txt public/sitemap.xml public/sitemap-0.xml",
+    "clean": "rm -rf .next out public/robots.txt public/sitemap.xml public/sitemap-0.xml",
     "lint:fix": "eslint --fix src && prettier --write src",
-    "analyze": "ANALYZE=true nub run build"
+    "analyze": "ANALYZE=true nub run build",
+    "test": "vitest run"
   },
   "dependencies": {
     "@mantine/code-highlight": "^8.3.18",
@@ -34,7 +34,6 @@
     "jsoncrack-react": "workspace:*",
     "jsonpath-plus": "10.4.0",
     "lodash.debounce": "^4.0.8",
-    "monaco-yaml": "^5.5.1",
     "next": "16.2.12",
     "next-seo": "^7.2.0",
     "next-sitemap": "^4.2.3",
@@ -50,6 +49,7 @@
     "shiki": "^4.0.2",
     "styled-components": "^6.3.11",
     "use-sync-external-store": "^1.6.0",
+    "yaml": "^2.9.0",
     "zustand": "^5.0.12"
   },
   "devDependencies": {
@@ -70,6 +70,7 @@
     "serve": "^14.2.6",
     "ts-node": "^10.9.2",
     "typescript": "5.9.3",
-    "typescript-eslint": "^8.57.1"
+    "typescript-eslint": "^8.57.1",
+    "vitest": "^2.1.9"
   }
 }

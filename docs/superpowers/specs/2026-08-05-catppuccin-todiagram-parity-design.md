@@ -15,7 +15,7 @@
 1. **主題收斂**：把散在三層、其中兩層重複的顏色定義收成單一來源，值換成 Catppuccin Mocha 與 Latte
 2. **節點視覺**：節點加上彩色 header 條，顏色依 key 名稱從 accent 池取
 3. **UI 重組**：新增左側面板頂 bar、canvas 空狀態引導卡片
-4. **Schema 驗證**：JSON 沿用現有行內驗證，YAML 用 monaco-yaml 補上行內驗證，XML 與 CSV 用 ajv
+4. **Schema 驗證**：JSON 沿用現有行內驗證，YAML 用 ajv 加 YAML AST 補上行內驗證，XML 與 CSV 用 ajv
    驗證轉換後的 object
 5. **ELK layout**：調校間距與 edge routing 參數，並讓邊從對應的那一列出發而非節點右緣
 
@@ -64,7 +64,7 @@
 | D4 | Catppuccin 套法 | Mocha 接 dark，Latte 接 light | 同一組 token 兩組值，亮暗切換與 `PageLayout` 強制 light 的邏輯都不用改 |
 | D5 | 色票放哪 | 放 `packages/jsoncrack-react`，`apps/www` 消費 | canvas 是唯一需要 JS 端色值的地方，節點寬度在 `calculateNodeSize.ts` 用 JS 量測 |
 | D6 | 節點 header 著色規則 | `hash(key 名稱) % ACCENT_POOL.length` | 同名 key 跨檔案同色，不需額外狀態，與截圖行為一致 |
-| D7 | YAML 驗證引擎 | monaco-yaml | 使用者要行內紅波浪線與行號定位，與 JSON 體驗一致 |
+| D7 | YAML 驗證引擎 | ajv 加 `yaml` 的 AST | 原定 monaco-yaml，實作後證實它與 monaco 0.53+ 不相容，見架構第 4 節。改法仍給行內紅波浪線與行號 |
 | D8 | XML / CSV 驗證引擎 | ajv 驗證 `contentToJson` 的產出 | Monaco 對這兩個格式沒有 schema 驗證機制可用 |
 | D9 | JSON Schema draft | ajv 只用 draft-07，不裝 `ajv-draft-04` | 實作後修正：draft 支援其實依驗證器而異。Monaco 與 yaml-language-server 都吃 draft-04 起的多個版本，所以 JSON 與 YAML 沒有這個限制；只有 XML 與 CSV 的 ajv 路徑限 draft-07，其他版本回報 `Not checked` |
 | D10 | ELK 範圍 | 參數調校加上 row-anchored ports | 邊從對應的列出發是截圖最明顯的視覺特徵，只調參數做不到 |
@@ -209,12 +209,31 @@ canvas 中央的引導卡片，在編輯器內容為空時顯示。四張格式�
 | 格式 | 驗證器 | 錯誤呈現 |
 |---|---|---|
 | JSON | Monaco `jsonDefaults`（現有，不動） | 行內 marker，有行號 |
-| YAML | monaco-yaml | 行內 marker，有行號 |
+| YAML | ajv 對 `yaml` AST，主執行緒 | 行內 marker，有行號 |
 | XML / CSV | ajv 驗證 `contentToJson` 的產出 | PaneBar 錯誤清單，只有 JSON Pointer 路徑 |
 
-**monaco-yaml 整合**
+**YAML 整合：為什麼不是 monaco-yaml**
 
-裝 `monaco-yaml@5.5.1`，peer 是 `monaco-editor >=0.36`，專案裝 0.56.0，相容。
+原定用 monaco-yaml，實作後證實它在 monaco 0.53 之後完全無法運作。`monaco-worker-manager`
+呼叫 `monaco.editor.createWebWorker({ moduleId, label })`，而 monaco 0.53 把這個 API 換成
+`createWebWorker({ worker, host?, keepIdleModels? })`，改由呼叫端自備 `Worker`。0.56 因此拿到
+一個不認得的 descriptor，警告 `Could not create web worker(s)`，退回主執行緒跑通用 editor
+worker，每次 `doValidation` 都回 `Missing requestHandler`。monaco-yaml 宣告 peer
+`monaco-editor >=0.36`，這個範圍是錯的。
+
+改成 ajv 加 `yaml` 套件的 AST，全程在主執行緒：
+
+1. `parseDocument(text)` 取得帶 range 的 AST
+2. ajv 驗證 `doc.toJS()`
+3. 每個 ajv 錯誤的 JSON Pointer 經 `Document.getIn` 反查回 source range
+4. `monaco.editor.setModelMarkers` 畫上行內波浪線
+
+兩個容易錯的地方：陣列索引必須轉成數字，否則 AST 查找會 miss；缺少的 required 屬性沒有自己的
+節點，range 要往上取最近的祖先而不是丟掉該錯誤。兩者都有單元測試。
+
+（下面這段保留當時的計畫內容，實際未採用。）
+
+裝 `monaco-yaml@5.5.1`，peer 是 `monaco-editor >=0.36`，專案裝 0.56.0。
 
 在 `TextEditor.tsx` 加一個 effect，與現有的 `jsonDefaults` effect 並列：
 
@@ -311,7 +330,8 @@ ELK 的方式，以及 `elk.portConstraints` 該下在 node 層還是 graph 層�
 - **yaml worker 載入失敗要 fail soft**：狀態燈顯示「驗證不可用」的中性狀態，不顯示綠勾，也不讓
   編輯器掛掉。綠勾必須代表真的驗證過了
 - **ajv 對 schema 本身編譯失敗**：同上，狀態燈顯示驗證不可用並附編譯錯誤訊息，不阻擋畫圖
-- **YAML 語法錯誤與 schema 違規**都由 monaco-yaml 產生 marker，狀態燈統一數 marker 數，不區分來源
+- **YAML 語法錯誤**由 monaco 自己的 YAML 語言支援標出，**schema 違規**由這裡的 AST 檢查標出，
+  兩者都是 model marker。schema 檢查在文件無法 parse 時不執行，避免在語法錯誤上疊加雜訊
 - **XML / CSV parse 失敗**：現有 `useFile.error` 路徑照舊，schema 驗證在 parse 失敗時不執行
 
 ## 風險與先行驗證

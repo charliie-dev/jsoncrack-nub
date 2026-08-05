@@ -8,36 +8,26 @@ import Editor, {
   type OnMount,
   useMonaco,
 } from "@monaco-editor/react";
-import type { MonacoYaml } from "monaco-yaml";
+import { FileFormat } from "../../enums/file.enum";
+import { monaco as bundledMonaco } from "../../lib/utils/monacoSetup";
 import { defineCatppuccinThemes, MONACO_THEME } from "../../lib/utils/monacoTheme";
-import { installYamlWorker } from "../../lib/utils/monacoYamlWorker";
+import { yamlSchemaMarkers } from "../../lib/utils/yamlSchemaMarkers";
 import useConfig from "../../store/useConfig";
 import useFile from "../../store/useFile";
 
-// Served from this deployment, not a CDN. Monaco is 24 MB, so @monaco-editor/react
-// fetches it at runtime rather than bundling it; the assets are copied into
-// public/monaco/vs by apps/www/scripts/copy-monaco.mjs, which runs before dev and build.
+// Bundled by webpack, not fetched at runtime.
 //
-// This used to point at `https://unpkg.com/monaco-editor@0.55.1/min/vs`, which made the
-// editor — the site root in this fork — depend on public CDN egress, so a self-hosted
-// instance behind a firewall showed a loading overlay forever. The version was also a
-// bare string no tool maintained: it had drifted to 0.55.1 while the installed package
-// was 0.56.0. The copy script resolves the package, so the version now tracks the
-// lockfile.
-loader.config({
-  paths: {
-    vs: "/monaco/vs",
-  },
-});
+// This used to point at `https://unpkg.com/monaco-editor@0.55.1/min/vs` and then at a copy
+// of monaco's AMD bundle under public/monaco/vs, which needed copy-monaco.mjs to keep the
+// copy in step with the lockfile. Bundling drops that script and lets webpack hash the
+// worker chunks like any other asset.
+//
+// The component is loaded through next/dynamic with ssr: false (see pages/editor.tsx), so
+// importing monaco at module scope is safe.
+loader.config({ monaco: bundledMonaco });
 
-/**
- * `configureMonacoYaml` returns a `MonacoYaml`, declared as `extends IDisposable` from
- * monaco-types. monaco-types@0.1.2 does not actually export `IDisposable`, so the
- * inherited `dispose` vanishes from the resolved type even though it exists at runtime.
- * monaco-yaml pins no version for monaco-types, so this is a version-pairing gap rather
- * than something wrong on our side.
- */
-type DisposableMonacoYaml = MonacoYaml & { dispose: () => void };
+/** Marker owner, kept distinct so monaco's own diagnostics are never overwritten. */
+const YAML_SCHEMA_MARKER_OWNER = "yaml-schema";
 
 const editorOptions: EditorProps["options"] = {
   tabSize: 2,
@@ -83,51 +73,46 @@ const TextEditor = () => {
     });
   }, [jsonDefaults, jsonSchema]);
 
+  /**
+   * YAML schema validation.
+   *
+   * Runs in the main thread against the YAML AST instead of a language server worker. The
+   * markers are owned by "yaml-schema" so they sit alongside, and never clobber, whatever
+   * monaco's own languages report.
+   */
   React.useEffect(() => {
-    if (!monaco) return;
+    if (!monaco || fileType !== FileFormat.YAML) return;
 
-    let disposed = false;
-    let handle: DisposableMonacoYaml | undefined;
+    const model = monaco.editor.getModels().find(m => m.getLanguageId() === "yaml");
+    if (!model) return;
 
-    // monaco-yaml allows only one configured instance at a time, so the handle is disposed
-    // and rebuilt when the schema changes rather than layering a second one. Dynamic import
-    // keeps its worker out of the initial bundle for the sessions that never touch YAML.
-    //
-    // The catch is load-bearing, not defensive noise: without it a failure here becomes an
-    // unhandled rejection in the console while the lamp goes on showing a green tick for a
-    // YAML document nothing validated.
-    void import("monaco-yaml")
-      .then(({ configureMonacoYaml }) => {
-        if (disposed) return;
+    const result = yamlSchemaMarkers(contents, jsonSchema);
 
-        handle = configureMonacoYaml(monaco, {
-          validate: true,
-          enableSchemaRequest: true,
-          ...(jsonSchema && {
-            schemas: [
-              {
-                uri: "http://example.com/schema.json",
-                fileMatch: ["*"],
-                schema: jsonSchema,
-              },
-            ],
-          }),
-        }) as DisposableMonacoYaml;
+    if (result.kind === "unavailable") {
+      setYamlValidatorError(result.reason);
+      monaco.editor.setModelMarkers(model, YAML_SCHEMA_MARKER_OWNER, []);
+      return;
+    }
 
-        setYamlValidatorError(null);
+    setYamlValidatorError(null);
+    monaco.editor.setModelMarkers(
+      model,
+      YAML_SCHEMA_MARKER_OWNER,
+      result.markers.map(marker => {
+        const start = model.getPositionAt(marker.startOffset);
+        const end = model.getPositionAt(marker.endOffset);
+
+        return {
+          severity: monaco.MarkerSeverity.Error,
+          message: marker.message,
+          startLineNumber: start.lineNumber,
+          startColumn: start.column,
+          endLineNumber: end.lineNumber,
+          endColumn: end.column,
+        };
       })
-      .catch((error: unknown) => {
-        if (disposed) return;
-        setYamlValidatorError(
-          error instanceof Error ? error.message : "The YAML validator failed to load"
-        );
-      });
-
-    return () => {
-      disposed = true;
-      handle?.dispose();
-    };
-  }, [monaco, jsonSchema, setYamlValidatorError]);
+    );
+  }, [monaco, fileType, contents, jsonSchema, setYamlValidatorError]);
 
   React.useEffect(() => {
     const beforeunload = (e: BeforeUnloadEvent) => {
@@ -149,7 +134,6 @@ const TextEditor = () => {
 
   const handleBeforeMount: BeforeMount = useCallback(monacoInstance => {
     defineCatppuccinThemes(monacoInstance);
-    installYamlWorker();
   }, []);
 
   const handleMount: OnMount = useCallback(editor => {
