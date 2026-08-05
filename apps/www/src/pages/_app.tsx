@@ -21,20 +21,19 @@ import { isDynamicColorSchemePath, smartColorSchemeManager } from "../lib/utils/
 const DYNAMIC_COLOR_SCHEME_PATHS = ["/", "/editor", "/widget"];
 
 /**
- * Forces the light scheme when navigating onto a page that expects it.
+ * Forces the dark scheme when navigating onto a static page.
  *
- * The colour-scheme manager decides light-vs-dynamic from the pathname, but Mantine
- * only consults it while mounting, so a client-side navigation from a dynamic route to
- * a static one left the persisted dark scheme in place — near-white text on
- * PageLayout's hard-coded white background. That was already reachable from /editor
- * before the site root became the editor; this fixes both entry points.
+ * The colour-scheme manager decides fixed-vs-dynamic from the pathname, but Mantine only
+ * consults it while mounting, so a client-side navigation from a dynamic route to a static
+ * one would otherwise leave whichever scheme the editor was last on. Static pages are
+ * Catppuccin Mocha and have no toggle, so they need to be pinned on every navigation.
  */
 const ColorSchemeSync = ({ pathname }: { pathname: string }) => {
   const { setColorScheme } = useMantineColorScheme();
 
   React.useEffect(() => {
     if (!isDynamicColorSchemePath(pathname, DYNAMIC_COLOR_SCHEME_PATHS)) {
-      setColorScheme("light");
+      setColorScheme("dark");
     }
   }, [pathname, setColorScheme]);
 
@@ -87,6 +86,26 @@ const theme = createTheme({
   primaryColor: "mauve",
   colors: {
     mauve: shades(mocha.mauve, mocha.base),
+    /**
+     * Mantine resolves every dark-scheme surface through `colors.dark`: dropdown and modal
+     * backgrounds, borders, dimmed text. Leaving it at the default meant menus stayed on
+     * Mantine's own grey-blue while everything around them was Catppuccin.
+     *
+     * Ordered brightest to darkest, which is the convention Mantine's components assume:
+     * 0 is body text, 4 is the border, 6 is the body background, 7 is a raised surface.
+     */
+    dark: [
+      mocha.text,
+      mocha.subtext1,
+      mocha.subtext0,
+      mocha.overlay1,
+      mocha.surface2,
+      mocha.surface1,
+      mocha.surface0,
+      mocha.base,
+      mocha.mantle,
+      mocha.crust,
+    ],
   },
   radius: {
     lg: "12px",
@@ -126,7 +145,7 @@ function JSONCrackApp({ Component, pageProps }: AppProps) {
       />
       <MantineProvider
         colorSchemeManager={colorSchemeManager}
-        defaultColorScheme="light"
+        defaultColorScheme="dark"
         theme={theme}
       >
         <ColorSchemeSync pathname={pathname} />

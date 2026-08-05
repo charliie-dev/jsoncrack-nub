@@ -1,7 +1,14 @@
 import React, { useCallback } from "react";
 import { LoadingOverlay } from "@mantine/core";
 import styled from "styled-components";
-import Editor, { type EditorProps, loader, type OnMount, useMonaco } from "@monaco-editor/react";
+import Editor, {
+  type BeforeMount,
+  type EditorProps,
+  loader,
+  type OnMount,
+  useMonaco,
+} from "@monaco-editor/react";
+import { defineCatppuccinThemes, MONACO_THEME } from "../../lib/utils/monacoTheme";
 import useConfig from "../../store/useConfig";
 import useFile from "../../store/useFile";
 
@@ -37,7 +44,9 @@ const TextEditor = () => {
   const setError = useFile(state => state.setError);
   const jsonSchema = useFile(state => state.jsonSchema);
   const getHasChanges = useFile(state => state.getHasChanges);
-  const theme = useConfig(state => (state.darkmodeEnabled ? "vs-dark" : "light"));
+  const theme = useConfig(state =>
+    state.darkmodeEnabled ? MONACO_THEME.dark : MONACO_THEME.light
+  );
   const fileType = useFile(state => state.format);
   const jsonDefaults = (monaco?.languages as any)?.json?.jsonDefaults as
     { setDiagnosticsOptions: (options: unknown) => void } | undefined;
@@ -79,6 +88,10 @@ const TextEditor = () => {
     };
   }, [getHasChanges]);
 
+  const handleBeforeMount: BeforeMount = useCallback(monacoInstance => {
+    defineCatppuccinThemes(monacoInstance);
+  }, []);
+
   const handleMount: OnMount = useCallback(editor => {
     editor.onDidPaste(() => {
       editor.getAction("editor.action.formatDocument")?.run();
@@ -94,6 +107,7 @@ const TextEditor = () => {
           theme={theme}
           value={contents}
           options={editorOptions}
+          beforeMount={handleBeforeMount}
           onMount={handleMount}
           onValidate={errors => setError(errors[0]?.message || "")}
           onChange={contents => setContents({ contents, skipUpdate: true })}

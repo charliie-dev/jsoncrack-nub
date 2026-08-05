@@ -5,12 +5,15 @@ import Editor from "@monaco-editor/react";
 import { event as gaEvent } from "nextjs-google-analytics";
 import { toast } from "react-hot-toast";
 import { VscLinkExternal } from "react-icons/vsc";
+import { defineCatppuccinThemes, MONACO_THEME } from "../../../lib/utils/monacoTheme";
 import useConfig from "../../../store/useConfig";
 import useFile from "../../../store/useFile";
 
 export const SchemaModal = ({ opened, onClose }: ModalProps) => {
   const setJsonSchema = useFile(state => state.setJsonSchema);
-  const darkmodeEnabled = useConfig(state => (state.darkmodeEnabled ? "vs-dark" : "light"));
+  const darkmodeEnabled = useConfig(state =>
+    state.darkmodeEnabled ? MONACO_THEME.dark : MONACO_THEME.light
+  );
   const [schema, setSchema] = React.useState(
     JSON.stringify(
       {
@@ -67,6 +70,7 @@ export const SchemaModal = ({ opened, onClose }: ModalProps) => {
           <Editor
             value={schema ?? ""}
             theme={darkmodeEnabled}
+            beforeMount={defineCatppuccinThemes}
             onChange={e => setSchema(e!)}
             height={300}
             language="json"

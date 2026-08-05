@@ -12,12 +12,12 @@ export interface SmartColorSchemeManagerOptions {
 /**
  * Creates a smart color scheme manager that handles different behaviors based on the current path
  * - For editor paths: Uses dynamic behavior with localStorage persistence and per-tab independence
- * - For other paths: Forces light theme
+ * - For other paths: Forces the dark scheme
  */
 /**
  * Whether a pathname is one of the dynamic-theme routes.
  *
- * Exported so `_app` can force the light scheme when navigating onto a static page
+ * Exported so `_app` can force the dark scheme when navigating onto a static page
  * without duplicating the matching rule. Note the prefix test compares against
  * `${path}/`, so a "/" entry matches the site root exactly and nothing else.
  */
@@ -38,8 +38,10 @@ export function smartColorSchemeManager({
 
   return {
     get: defaultValue => {
-      // If not in a dynamic path (e.g., editor), always return light theme
-      if (!shouldUseDynamicBehavior()) return "light";
+      // Static pages (docs, legal, 404) are Catppuccin Mocha and do not offer a toggle.
+      // They used to be forced light, which was upstream's look; against this fork's dark
+      // editor that read as two different products.
+      if (!shouldUseDynamicBehavior()) return "dark";
 
       // For dynamic paths, use the stored value (memory first, then localStorage)
       if (currentColorScheme) return currentColorScheme;

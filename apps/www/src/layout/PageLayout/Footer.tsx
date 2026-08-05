@@ -3,11 +3,12 @@ import Link from "next/link";
 import { Anchor, Container, Divider, Flex, Stack, Text, ThemeIcon } from "@mantine/core";
 import { FaDiscord, FaGithub, FaLinkedin } from "react-icons/fa";
 import { FaXTwitter } from "react-icons/fa6";
+import { darkTheme } from "../../constants/theme";
 import { JSONCrackLogo } from "../JSONCrackBrandLogo";
 
 export const Footer = () => {
   return (
-    <Container w="100%" mt={60} px={60} pb="xl" bg="black" fluid>
+    <Container w="100%" mt={60} px={60} pb="xl" bg={darkTheme.BACKGROUND_TERTIARY} fluid>
       <Divider color="gray.3" mb="xl" mx={-60} />
       <Flex justify="space-between">
         <Stack gap={4} visibleFrom="sm">
@@ -18,7 +19,7 @@ export const Footer = () => {
         </Stack>
         <Flex gap={60} visibleFrom="sm">
           <Stack gap="xs">
-            <Text fz="sm" c="white">
+            <Text fz="sm" c={darkTheme.TEXT_NORMAL}>
               Product
             </Text>
             <Anchor
@@ -40,7 +41,7 @@ export const Footer = () => {
             </Anchor>
           </Stack>
           <Stack gap="xs">
-            <Text fz="sm" c="white">
+            <Text fz="sm" c={darkTheme.TEXT_NORMAL}>
               Resources
             </Text>
             <Anchor component={Link} prefetch={false} fz="sm" c="gray.5" href="/docs">
@@ -48,7 +49,7 @@ export const Footer = () => {
             </Anchor>
           </Stack>
           <Stack gap="xs">
-            <Text fz="sm" c="white">
+            <Text fz="sm" c={darkTheme.TEXT_NORMAL}>
               Social
             </Text>
             <Flex gap="xs">

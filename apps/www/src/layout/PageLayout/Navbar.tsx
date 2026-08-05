@@ -17,7 +17,7 @@ const StyledNavbar = styled.nav`
   max-width: 1200px;
   margin: 0 auto;
   padding: 16px 24px;
-  background: white;
+  background: ${({ theme }) => theme.BACKGROUND_PRIMARY};
   backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
 
