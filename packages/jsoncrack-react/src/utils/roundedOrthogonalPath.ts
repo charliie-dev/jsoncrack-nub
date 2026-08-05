@@ -1,7 +1,7 @@
 export type PathPoint = { x: number; y: number };
 
 /** Corner radius, in px, before it is capped by the shorter of the two adjoining segments. */
-const CORNER_RADIUS = 8;
+export const CORNER_RADIUS = 8;
 
 const distance = (a: PathPoint, b: PathPoint) => Math.hypot(b.x - a.x, b.y - a.y);
 

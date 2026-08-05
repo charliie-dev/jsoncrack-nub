@@ -16,8 +16,17 @@ export const layoutOptions: Record<string, string> = {
   "elk.layered.crossingMinimization.strategy": "LAYER_SWEEP",
   // Tuned against the reference UI over several passes. No edgeLabel spacing because edges
   // carry no labels: see EdgeData.text.
-  "elk.layered.spacing.nodeNodeBetweenLayers": "50",
-  "elk.layered.spacing.edgeNodeBetweenLayers": "16",
+  //
+  // These two set the corridor the edges are routed through, and they only read well
+  // together. edgeNodeBetweenLayers is the clearance an edge keeps from the nodes on either
+  // side, so it is the length of the straight run before an edge first turns; at 16 the
+  // lines bent away the moment they left the node, which is the main thing that made this
+  // look busier than the reference. nodeNodeBetweenLayers then has to leave room for that
+  // clearance twice over plus the channels in between — at 60 the far side collapsed to 5px
+  // and the edges arrived hard against their targets. Widening it costs nothing here: the
+  // graph is as wide as its widest node either way.
+  "elk.layered.spacing.nodeNodeBetweenLayers": "100",
+  "elk.layered.spacing.edgeNodeBetweenLayers": "40",
   "elk.spacing.nodeNode": "14",
   "elk.spacing.edgeEdge": "10",
 };

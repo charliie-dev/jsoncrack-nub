@@ -1268,13 +1268,11 @@ git commit -m "feat(canvas): tune elk spacing and route edges orthogonally"
 
 ---
 
-### Task 8: row-anchored ports（部分完成）
+### Task 8: row-anchored ports（完成）
 
-**狀態：做到 reaflow 允許的程度。** 原本 2026-08-05 判定核心假設不成立而退為後續 slice，同日使用者
-要求連同 ELK 調校一起處理，於是改為交付可行的那一半（commit `998e9ed8`）。
-
-實際交付：每個指向子節點的 row 宣告一個 EAST port，邊按 row 順序沿節點右緣散開，不再全部疊在同一
-點。**沒有交付**精確對齊 row 高度，原因見下。
+分兩次交付。第一次（commit `998e9ed8`）只做到 reaflow 允許的程度：每個指向子節點的 row 宣告一個
+EAST port，邊按 row 順序沿節點右緣散開，不再全部疊在同一點，但不精確對齊 row 高度。第二次補上精確
+對齊，走的是下表第二條路，細節見〈精確對齊：改在 layout 之後修〉。
 
 同一次還修掉一個更早的誤判：`elk.edgeRouting: "ORTHOGONAL"` 從 Task 7 起就設了，ELK 也一直產出直角
 bend points，但畫面上是曲線。reaflow 的 `Edge` 預設 `interpolation="curved"`，把那些點餵進
@@ -1307,12 +1305,120 @@ ELK port 物件的頂層**，而 ELK 讀座標讀的正是頂層欄位，不是 
 
 | 方案 | 效果 | 狀態 |
 |---|---|---|
-| `FIXED_ORDER` 加 EAST port | 同一父節點的多條邊按 row 順序沿右側分開，ELK 自行決定間距 | **已採用**。不精確對齊 row，但比全部擠在中點好 |
-| 在 `CustomEdge` 後處理 `sections` | 精確對齊 row 高度 | 未做。要自己維持直角轉折，邊線可能穿過節點 |
-| 不用 reaflow，直接驅動 elkjs | 完全控制 port 座標 | 未做。等於重寫 canvas 層 |
+| `FIXED_ORDER` 加 EAST port | 同一父節點的多條邊按 row 順序沿右側分開，ELK 自行決定間距 | **已採用**，作為底層 |
+| 後處理 layout 的 `sections` | 精確對齊 row 高度 | **已採用**，疊在前者之上 |
+| 不用 reaflow，直接驅動 elkjs | 完全控制 port 座標 | 沒做。等於重寫 canvas 層，而後處理已經夠 |
 
-`PortData.y` 仍然記錄該 row 的實際偏移，雖然 ELK 現在讀不到它。若日後走第二或第三條路，公式已經
-和 `calculateNodeSize`、`ObjectNode` 的 row 定位共用同一個 `HEADER_HEIGHT`。
+#### 精確對齊：改在 layout 之後修
+
+`FIXED_POS` 這條路確定不通之後，剩下的選擇是接受 ELK 的結果再修。修的位置不是原本設想的
+`CustomEdge`，而是 `onLayoutChange`：
+
+```js
+// reaflow useLayout
+promise.then(result => {
+  if (!isEqual(layout, result)) {
+    setLayout(result);
+    onLayoutChange(result);   // 同一個物件，同步，React render 之前
+  }
+})
+```
+
+傳進 `onLayoutChange` 的就是 reaflow 接下來要拿來 render 的那個物件，而且呼叫點在 `setLayout` 之後
+但仍在同一個 microtask 內。就地改 `layout.edges[*].sections` 會直接進第一次 paint，不需要第二次
+render，也就不會先閃一下沒對齊的邊。放在 `CustomEdge` 反而做不到這點 —— 那時每條邊只看得到自己的
+`sections`，看不到來源節點的絕對 y。
+
+`alignEdgesToRows` 只動出節點的那一小段（stub）：
+
+- 若第一個 bend 與起點同 y（水平出線，常態），把兩者一起下移到 row 中心，bend 之後的線段原封不動。
+  ELK 挑的垂直通道與避免交錯的工作因此全部保留。
+- 若沒有 bend（邊直直穿到目標），插一個 jog 維持直角。
+
+jog 的垂直段擺哪裡修了兩輪，每一輪都是先量再改。
+
+**第一版取層間空隙的中點。** 在 repo 自己的 `package.json` 上量到一條 jog 落在 x=327.5、而另一條邊
+的既有通道在 x=326 —— 差 1.5px，重疊 15px，畫面上是一條變粗的線。ELK 已經把那段空隙拿去排它自己的
+通道了，中點沒有理由是空的。改成挑最空的通道之後垂直重疊歸零。
+
+**第二版仍然會切過別人的 stub。** 量交叉數才看出來：`ELK 自己 0 個，對齊之後 4 個，全部出在同一條
+邊`。那條邊（`workspaces[0]`）的 jog 在 x=313，落在鄰居兩條通道（326、336）的左邊，於是垂直段切過
+它們離開同一個節點的 stub，而它自己回頭的水平段又切過它們的垂直段。只避開平行重疊是不夠的。
+
+**現在改成直接以交叉數為目標。** `pickChannelX` 把每個障礙之間的區段各取一個中點當候選，逐一算這個
+jog 的三段（出去的水平、垂直、進去的水平）會製造幾個交叉，取最少的；平手時取離平行垂直線最遠的。平
+凡中點排在候選第一位，所以完全沒有障礙時它會勝出。同一個例子改完是 0 個交叉，那條邊從 x=313 移到
+347，也就是繞到鄰居通道的右邊。
+
+`alignEdgesToRows.integration.test.ts` 有兩條守門，都驗證過會因為改回中點而失敗：
+
+- 任兩條邊的垂直段若 y 範圍相交，x 必須相距超過 4px（實測會掉到 1.5px）。
+- 對齊之後的交叉數不得多於 ELK 自己的（實測會從 0 變 2）。
+
+唯一保留的共線是同一個 array row 的多個 item：它們共用 row 錨點，出節點的那一小段本來就該疊在一起，
+和參考 UI 一致，使用者也確認過。
+
+#### 太短的轉折直接拉直
+
+交叉清乾淨之後還剩一種難看的東西：垂直只走 13px 或 16px 的轉折。`roundedOrthogonalPath` 每個轉角各
+往回削最多 8px，所以低於 16px 的線段根本沒有直的部分，兩段圓弧直接接在一起 —— 看起來是線抖了一下，
+不是轉彎。
+
+這種轉折不是在繞開什麼，是為了進到目標節點的**垂直中心**而多繞的最後幾像素。既然 row 的 y 本來就落
+在目標節點的側邊上，直接從那裡進去就好，整條邊變成一條直線。條件兩個都要成立：
+
+- 轉折長度 `< CORNER_RADIUS * 3`（24px）—— 低於這個畫出來看不出是轉彎。
+- row 的 y 落在目標節點高度內、且距上下緣至少 8px —— 否則線會接在圓角上。
+
+實測 `package.json` 上正好命中兩條（`workspaces[1]` 13px、`devEngines.packageManager` 16px），其餘
+七條的轉折是 49～399px，全部保留。進入點偏離中心 -13 / +16px，在 66px 和 108px 高的節點裡看不出來。
+
+拉直之後 `bendPoints` 是 `undefined`，reaflow 會退回 `getBezierPath`。這裡沒問題：它預設的
+`sourcePosition`/`targetPosition` 是 `bottom`/`top`，走的分支是
+`M sx,sy C sx,cy tx,cy tx,ty`，當 `sy === ty` 時 `cy` 也等於它，四個 y 全同，畫出來就是直線。
+
+守門是第三條 integration test：任何線段長度不得低於 20px。停掉拉直會讓它失敗（實測抓到 16px）。
+
+#### 同一節點的 jog 要一起分配，不能一條一條插
+
+最後一輪處理的是「貪婪」這個疑慮。先量：造了八種刻意逼出 jog 的形狀（高節點、子節點全擠在前幾列或
+後幾列、單一 row 扇出多條 array item）。結論是**交叉沒問題 —— 八種全部 0 → 0**，貪婪並沒有製造交叉。
+壞掉的是間距：
+
+```
+3 children up top     minSep=12.5
+array row high up     minSep= 6.25    ← 遠低於 4px / 20px 兩條守門的意圖
+```
+
+原因不只是二分。把座標印出來才看清楚：四條從同一 row 扇出去的邊，**每一條進入目標的水平段都會擋住它
+右邊的所有通道**，所以走得越遠的必須排越左，否則就切過別人。貪婪一條一條挑時，每挑一條就把右邊全部
+劃掉，下一條只能往左擠，於是 192 → 182 → 177 → 174.5。
+
+順序是被幾何強制的，間距不是。所以改成先定序再分配：
+
+- 依 jog 的垂直距離**由遠到近**排序，那正是不交叉所需的巢狀順序。
+- 把整條走廊平均切成 `n+1` 份，按上述順序由左到右發下去。
+- 每條邊優先拿自己那一份，其餘份額當備案，仍然過原本的交叉評分 —— ELK 排的通道還是要躲。
+
+有一個陷阱卡了一輪：clearance 這個 tie-break 會蓋過配額。同組兩條邊交叉數都是 0 時，「離平行線越遠
+越好」把後者一路推到走廊最右邊。修法是 **clearance 只計算非同組的垂直線** —— 同組的間距已經由配額
+保證，不該再參與評分。
+
+結果四條扇出邊落在 192 / 212 / 232 / 252，正好均分，交叉 0。真實 `package.json` 的輸出一個座標都沒變。
+
+`alignEdgesToRows.fanout.test.ts` 收了那八種形狀，每種都先斷言「這個形狀真的有 jog」（否則等於在測滑
+動路徑，怎麼改都會過），再檢查交叉不增加、最短線段 ≥ 20px、平行通道 > 4px。把配額拿掉會讓其中四種
+失敗（實測 minSep 掉到 0）。
+
+順帶一提，reaflow 的 `Edge` 只有在 `sections[0].bendPoints` 存在時才會呼叫我們給的 `interpolation`，
+否則退回 `getBezierPath`。所以補 jog 同時也讓這些原本走 bezier 的邊改走 `roundedOrthogonalPath`。
+
+冪等：修完之後起點已經等於 row 中心，第二次進來就直接跳過。這點有測試，因為 `useLayout` 的
+`isEqual(layout, result)` 比的是被我們改過的舊 layout。
+
+驗收除了單元測試，另有 `alignEdgesToRows.integration.test.ts` 直接呼叫 reaflow 匯出的 `elkLayout`
+跑真實 layout —— parser 蓋的 port 偏移、node 的 header/row 高度、reaflow 的 mapping、ELK 回傳的
+section 形狀，四者任一改變都會讓它失敗，而不是變成畫面上歪掉的線。
 
 ### Task 9: apps/www 的 styled-components 與 Mantine 主題
 

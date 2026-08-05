@@ -16,10 +16,10 @@ export interface NodeRow {
  * the spacing itself: edges fan out down the right-hand side in the same sequence as the
  * rows they belong to, rather than all emerging from one point.
  *
- * `y` is not read by ELK. reaflow only forwards a port's id and properties, never lifting
- * coordinates onto the ELK port object, so FIXED_POS has nothing to act on. It is kept
- * because it is the offset the row actually sits at and any future exact-alignment work
- * needs it.
+ * `y` never reaches ELK — reaflow forwards a port's id and properties only, never lifting
+ * coordinates onto the ELK port object, so FIXED_POS would have nothing to act on. It is
+ * applied afterwards instead, by `alignEdgesToRows`, which slides each stub from the
+ * position ELK guessed onto the row it actually belongs to.
  */
 export interface PortData {
   id: string;

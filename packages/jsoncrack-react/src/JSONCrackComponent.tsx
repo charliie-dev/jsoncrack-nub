@@ -38,6 +38,7 @@ import { CustomEdge } from "./components/CustomEdge";
 import { CustomNode } from "./components/CustomNode";
 import { layoutOptions } from "./layoutOptions";
 import type { CanvasThemeMode, GraphData, LayoutDirection, NodeData } from "./types";
+import { alignEdgesToRows, buildPortOffsetMap } from "./utils/alignEdgesToRows";
 import { DEFAULT_ROOT_LABEL } from "./utils/nodeHeaderLabel";
 
 /** Imperative handle exposed via the component ref for viewport control. */
@@ -412,6 +413,13 @@ export const JSONCrack = forwardRef<JSONCrackRef, JSONCrackProps>(
 
     const edgeTargetById = useMemo(() => buildEdgeTargetMap(visibleEdges), [visibleEdges]);
 
+    // Held in a ref rather than closed over: reaflow's layout effect captures
+    // `onLayoutChange` when it starts ELK and calls that captured copy when ELK returns,
+    // so a callback rebuilt on every render would still be the stale one at that point.
+    const portOffsetById = useMemo(() => buildPortOffsetMap(visibleNodes), [visibleNodes]);
+    const portOffsetByIdRef = useRef(portOffsetById);
+    portOffsetByIdRef.current = portOffsetById;
+
     // Signal "relayouting" whenever the collapsed-set changes so the spinner
     // appears immediately on collapse/expand. JSON edits already route
     // through the parse effect which handles `setLoading(true)` on its own,
@@ -428,6 +436,11 @@ export const JSONCrack = forwardRef<JSONCrackRef, JSONCrackProps>(
     }, [collapsedSet]);
 
     const onLayoutChange = useCallback((layout: ElkRoot) => {
+      // Before anything reads the layout: reaflow hands us the very object it renders
+      // from, so correcting the edge stubs here is the last moment they can be fixed
+      // without costing a second render.
+      alignEdgesToRows(layout, portOffsetByIdRef.current);
+
       if (!layout.width || !layout.height) {
         setLoading(false);
         return;
