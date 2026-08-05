@@ -54,6 +54,7 @@ const TextEditor = () => {
   const setContents = useFile(state => state.setContents);
   const setError = useFile(state => state.setError);
   const setMarkers = useFile(state => state.setMarkers);
+  const setYamlValidatorError = useFile(state => state.setYamlValidatorError);
   const jsonSchema = useFile(state => state.jsonSchema);
   const getHasChanges = useFile(state => state.getHasChanges);
   const theme = useConfig(state =>
@@ -91,29 +92,42 @@ const TextEditor = () => {
     // monaco-yaml allows only one configured instance at a time, so the handle is disposed
     // and rebuilt when the schema changes rather than layering a second one. Dynamic import
     // keeps its worker out of the initial bundle for the sessions that never touch YAML.
-    void import("monaco-yaml").then(({ configureMonacoYaml }) => {
-      if (disposed) return;
+    //
+    // The catch is load-bearing, not defensive noise: without it a failure here becomes an
+    // unhandled rejection in the console while the lamp goes on showing a green tick for a
+    // YAML document nothing validated.
+    void import("monaco-yaml")
+      .then(({ configureMonacoYaml }) => {
+        if (disposed) return;
 
-      handle = configureMonacoYaml(monaco, {
-        validate: true,
-        enableSchemaRequest: true,
-        ...(jsonSchema && {
-          schemas: [
-            {
-              uri: "http://example.com/schema.json",
-              fileMatch: ["*"],
-              schema: jsonSchema,
-            },
-          ],
-        }),
-      }) as DisposableMonacoYaml;
-    });
+        handle = configureMonacoYaml(monaco, {
+          validate: true,
+          enableSchemaRequest: true,
+          ...(jsonSchema && {
+            schemas: [
+              {
+                uri: "http://example.com/schema.json",
+                fileMatch: ["*"],
+                schema: jsonSchema,
+              },
+            ],
+          }),
+        }) as DisposableMonacoYaml;
+
+        setYamlValidatorError(null);
+      })
+      .catch((error: unknown) => {
+        if (disposed) return;
+        setYamlValidatorError(
+          error instanceof Error ? error.message : "The YAML validator failed to load"
+        );
+      });
 
     return () => {
       disposed = true;
       handle?.dispose();
     };
-  }, [monaco, jsonSchema]);
+  }, [monaco, jsonSchema, setYamlValidatorError]);
 
   React.useEffect(() => {
     const beforeunload = (e: BeforeUnloadEvent) => {

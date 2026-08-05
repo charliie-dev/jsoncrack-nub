@@ -36,6 +36,7 @@ interface JsonActions {
   setFile: (fileData: File) => void;
   setJsonSchema: (jsonSchema: object | null) => void;
   setMarkers: (markers: SchemaIssue[]) => void;
+  setYamlValidatorError: (reason: string | null) => void;
   checkEditorSession: (url: Query, widget?: boolean) => void;
 }
 
@@ -63,6 +64,15 @@ const initialStates = {
   schemaValidation: SCHEMA_OFF as SchemaValidation,
   /** Monaco's current diagnostics, kept in full so the pane can show a count. */
   markers: [] as SchemaIssue[],
+  /**
+   * Why the YAML validator is not running, or null when it is.
+   *
+   * Separate from schemaValidation because that field carries the ajv verdict and is reset
+   * to "off" on every keystroke in a non-ajv format. Without this, a YAML document whose
+   * validator failed to load would show a green tick, which is exactly the lie the
+   * four-state lamp exists to prevent.
+   */
+  yamlValidatorError: null as string | null,
 };
 
 export type FileStates = typeof initialStates;
@@ -90,6 +100,7 @@ const useFile = create<FileStates & JsonActions>()((set, get) => ({
     get().setContents({ hasChanges: false, skipUpdate: true });
   },
   setMarkers: markers => set({ markers }),
+  setYamlValidatorError: yamlValidatorError => set({ yamlValidatorError }),
   setFile: fileData => {
     set({ fileData, format: fileData.format || FileFormat.JSON });
     get().setContents({ contents: fileData.content, hasChanges: false });

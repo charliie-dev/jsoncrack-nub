@@ -58,8 +58,10 @@ export const SchemaModal = ({ opened, onClose }: ModalProps) => {
     <Modal title="JSON Schema" size="lg" opened={opened} onClose={onClose} centered>
       <Stack>
         <Text fz="sm">
-          Draft-07 schemas only. JSON and YAML show violations inline in the editor; XML and CSV
-          list them in the pane header, addressed by JSON Pointer.
+          JSON and YAML show violations inline in the editor and accept draft-04 onwards. XML and
+          CSV are checked separately and listed in the pane header by JSON Pointer; that checker
+          reads draft-07 only, and reports anything else as <Code>Not checked</Code> rather than
+          passing it.
         </Text>
         <Text fz="sm" c="dimmed">
           XML is validated after conversion to JSON, not as XML. Attributes become keys prefixed

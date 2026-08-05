@@ -66,7 +66,7 @@
 | D6 | 節點 header 著色規則 | `hash(key 名稱) % ACCENT_POOL.length` | 同名 key 跨檔案同色，不需額外狀態，與截圖行為一致 |
 | D7 | YAML 驗證引擎 | monaco-yaml | 使用者要行內紅波浪線與行號定位，與 JSON 體驗一致 |
 | D8 | XML / CSV 驗證引擎 | ajv 驗證 `contentToJson` 的產出 | Monaco 對這兩個格式沒有 schema 驗證機制可用 |
-| D9 | JSON Schema draft | 統一 draft-07 | monaco-yaml 內部的 yaml-language-server 以 draft-07 為主，ajv 對齊它，不裝 `ajv-draft-04` |
+| D9 | JSON Schema draft | ajv 只用 draft-07，不裝 `ajv-draft-04` | 實作後修正：draft 支援其實依驗證器而異。Monaco 與 yaml-language-server 都吃 draft-04 起的多個版本，所以 JSON 與 YAML 沒有這個限制；只有 XML 與 CSV 的 ajv 路徑限 draft-07，其他版本回報 `Not checked` |
 | D10 | ELK 範圍 | 參數調校加上 row-anchored ports | 邊從對應的列出發是截圖最明顯的視覺特徵，只調參數做不到 |
 
 ## 架構

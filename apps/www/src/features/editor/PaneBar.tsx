@@ -14,7 +14,7 @@ import {
   VscSyncIgnored,
   VscWarning,
 } from "react-icons/vsc";
-import { formats } from "../../enums/file.enum";
+import { FileFormat, formats } from "../../enums/file.enum";
 import useConfig from "../../store/useConfig";
 import useFile from "../../store/useFile";
 import { useModal } from "../../store/useModal";
@@ -106,9 +106,17 @@ const useLampState = (): LampState => {
   const error = useFile(state => state.error);
   const markers = useFile(state => state.markers);
   const schemaValidation = useFile(state => state.schemaValidation);
+  const format = useFile(state => state.format);
+  const yamlValidatorError = useFile(state => state.yamlValidatorError);
 
   if (error) {
     return { icon: <VscError color="red" />, label: "Invalid", detail: error };
+  }
+
+  // A YAML document whose validator never loaded has not been checked, whatever the
+  // absence of markers might otherwise suggest.
+  if (format === FileFormat.YAML && yamlValidatorError) {
+    return { icon: <VscWarning />, label: "Not checked", detail: yamlValidatorError };
   }
 
   if (schemaValidation.status === "unavailable") {
