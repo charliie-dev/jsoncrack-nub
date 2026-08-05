@@ -63,15 +63,57 @@ const DENY = [
   "language/typescript", // 6.4 MB TypeScript language service
   "language/css",
   "language/html",
-  "assets/ts.worker", // 6.7 MB
-  "assets/css.worker",
-  "assets/html.worker",
-  "ts.worker",
   "nls/lang", // UI translations; this deployment is English-only
 ];
 
+/**
+ * `ts.worker` used to be on the DENY list to save 6.7 MB, and it broke the editor.
+ *
+ * monaco 0.56's min/vs is a flat bundle whose editor.main.js declares every worker as an
+ * AMD dependency up front, ts.worker included, regardless of which language services the
+ * app actually uses. An AMD module whose dependency never resolves does not raise: the
+ * loader simply waits, so the editor showed its loading spinner forever with a clean
+ * console and a green build. The assertDependenciesResolvable check below is what makes
+ * that failure mode loud, so a future attempt to trim a worker fails the build instead.
+ */
+
 /** Files that must exist afterwards, or the editor cannot load at all. */
 const REQUIRED = ["loader.js", "editor", "basic-languages", "language/json", "assets"];
+
+/**
+ * Every module id listed in editor.main.js's `define(...)` dependency array must exist on
+ * disk after the copy.
+ *
+ * Ids are relative to min/vs/editor. Those that already carry an extension are used
+ * verbatim; the rest get `.js`, which is how the AMD loader resolves them.
+ */
+async function assertDependenciesResolvable(dest) {
+  const entry = path.join(dest, "editor", "editor.main.js");
+  const source = await readFile(entry, "utf8");
+  const header = source.slice(0, source.indexOf("]"));
+  const deps = [...header.matchAll(/"([^"]+)"/g)]
+    .map(match => match[1])
+    .filter(id => id.startsWith("../") || id.startsWith("./"));
+
+  const unresolved = [];
+  for (const id of deps) {
+    const rel = id.endsWith(".js") ? id : `${id}.js`;
+    try {
+      await stat(path.resolve(dest, "editor", rel));
+    } catch {
+      unresolved.push(id);
+    }
+  }
+
+  if (unresolved.length) {
+    console.error(
+      `copy-monaco: editor.main.js depends on modules missing from ${dest}: ${unresolved.join(", ")}.\n` +
+        "An AMD dependency that never resolves leaves the editor spinning with no error. " +
+        "Check the DENY list in apps/www/scripts/copy-monaco.mjs."
+    );
+    process.exit(1);
+  }
+}
 
 const isDenied = rel => DENY.some(d => rel === d || rel.startsWith(`${d}/`) || rel.startsWith(`${d}-`));
 
@@ -115,6 +157,8 @@ if (missing.length) {
   );
   process.exit(1);
 }
+
+await assertDependenciesResolvable(destDir);
 
 const { version } = JSON.parse(
   await readFile(path.join(packageRoot, "package.json"), "utf8")
