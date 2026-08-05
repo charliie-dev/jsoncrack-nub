@@ -152,7 +152,7 @@ Plus the `dc:*` Docker tasks below.
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `NEXT_PUBLIC_NODE_LIMIT` | `1200` | Node count above which the graph shows a "not supported" panel instead of laying out. Raising it removes the only guard against a huge document hanging the tab — measure first |
+| `NEXT_PUBLIC_NODE_LIMIT` | `100000` | Node count above which the graph shows a "not supported" panel instead of laying out. This fork raises it well past the 1200 upstream validated, which trades the only guard against a huge document hanging the tab for the headroom to open one |
 | `NEXT_TELEMETRY_DISABLED` | `1` | Disable Next.js telemetry |
 | `NEXT_PUBLIC_DISABLE_EXTERNAL_MODE` | `true` | Hides the external-mode dialog, the "Upgrade to Pro Editor" toolbar link and the "Choose your editor" modal. Set to `false` to get all three back |
 | `NEXT_PUBLIC_GA_MEASUREMENT_ID` | _(empty)_ | Google Analytics measurement ID (optional) |
@@ -165,8 +165,13 @@ Where to set each one:
 | Scenario | File |
 | --- | --- |
 | `nub run dev` / local build | `apps/www/.env` for defaults, `apps/www/.env.local` for your own overrides |
-| `docker compose` | root `.env` — Compose forwards `NEXT_PUBLIC_SITE_URL` into the build and reads `PORT` and `TAG` itself |
+| `docker compose` | root `.env` — Compose forwards `NEXT_PUBLIC_SITE_URL` and `NEXT_PUBLIC_NODE_LIMIT` into the build and reads `PORT` and `TAG` itself |
 | GitHub Actions | the `NEXT_PUBLIC_SITE_URL` and `NEXT_PUBLIC_GA_MEASUREMENT_ID` repository variables |
+
+Every `NEXT_PUBLIC_` value is inlined into the bundle at build time, because the app is a
+static export served by nginx. Setting one as a container environment variable does
+nothing; the two Compose forwards above are build args and only take effect on
+`--build`, so a pulled image keeps whatever it was published with.
 
 `apps/www/.env.local` is excluded from the Docker build context on purpose, so a
 maintainer's local values can never be inlined into a published image.
@@ -202,6 +207,12 @@ URLs, sitemap and robots.txt together:
 
 ```sh
 NEXT_PUBLIC_SITE_URL=https://json.example.com docker compose up -d --build
+```
+
+To change the node ceiling, which is likewise baked in at build time:
+
+```sh
+NEXT_PUBLIC_NODE_LIMIT=20000 docker compose up -d --build
 ```
 
 The container runs unprivileged as uid 65532 with a read-only root filesystem, every Linux

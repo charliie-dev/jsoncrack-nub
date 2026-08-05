@@ -10,9 +10,12 @@ services:
       context: .
       dockerfile: apps/www/Dockerfile
       args:
-        # Maps to the Dockerfile's SITE_URL arg. Empty is safe and means "leave it to
-        # apps/www/.env"; only a real value overrides.
+        # Map to the Dockerfile's SITE_URL and NODE_LIMIT args. Empty is safe and means
+        # "leave it to apps/www/.env"; only a real value overrides. Both are build-time
+        # only — the app is a static export, so these values are baked into the bundle
+        # and a rebuild is what changes them, never `environment:` on the service.
         SITE_URL: ${NEXT_PUBLIC_SITE_URL:-}
+        NODE_LIMIT: ${NEXT_PUBLIC_NODE_LIMIT:-}
     container_name: jsoncrack
     ports:
       - "${PORT:-8080}:8080"
