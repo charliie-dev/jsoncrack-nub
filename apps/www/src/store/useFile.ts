@@ -36,6 +36,7 @@ interface JsonActions {
   setFile: (fileData: File) => void;
   setJsonSchema: (jsonSchema: object | null) => void;
   setMarkers: (markers: SchemaIssue[]) => void;
+  setDocumentName: (documentName: string | null) => void;
   setYamlValidatorError: (reason: string | null) => void;
   checkEditorSession: (url: Query, widget?: boolean) => void;
 }
@@ -65,6 +66,14 @@ const initialStates = {
   /** Monaco's current diagnostics, kept in full so the pane can show a count. */
   markers: [] as SchemaIssue[],
   /**
+   * Name of the imported document, shown as the root node's header.
+   *
+   * Separate from `fileData`, which this fork never populates: it describes a cloud
+   * document and the only thing left setting it was removed with the backend. Null means
+   * the canvas falls back to "Untitled".
+   */
+  documentName: null as string | null,
+  /**
    * Why the YAML validator is not running, or null when it is.
    *
    * Separate from schemaValidation because that field carries the ajv verdict and is reset
@@ -90,7 +99,7 @@ const debouncedUpdateJson = debounce((value: unknown) => {
 const useFile = create<FileStates & JsonActions>()((set, get) => ({
   ...initialStates,
   clear: () => {
-    set({ contents: "" });
+    set({ contents: "", documentName: null });
     useJson.getState().clear();
   },
   // Re-run immediately: waiting for the next keystroke would leave the lamp showing the
@@ -100,6 +109,7 @@ const useFile = create<FileStates & JsonActions>()((set, get) => ({
     get().setContents({ hasChanges: false, skipUpdate: true });
   },
   setMarkers: markers => set({ markers }),
+  setDocumentName: documentName => set({ documentName }),
   setYamlValidatorError: yamlValidatorError => set({ yamlValidatorError }),
   setFile: fileData => {
     set({ fileData, format: fileData.format || FileFormat.JSON });

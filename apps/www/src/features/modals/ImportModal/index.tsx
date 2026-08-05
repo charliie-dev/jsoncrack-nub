@@ -14,6 +14,7 @@ export const ImportModal = ({ opened, onClose }: ModalProps) => {
 
   const setContents = useFile(state => state.setContents);
   const setFormat = useFile(state => state.setFormat);
+  const setDocumentName = useFile(state => state.setDocumentName);
 
   const handleImportFile = () => {
     if (url) {
@@ -25,6 +26,8 @@ export const ImportModal = ({ opened, onClose }: ModalProps) => {
       return fetch(url)
         .then(res => res.json())
         .then(json => {
+          // Last path segment of the URL, which is the closest thing to a name a fetch gives.
+          setDocumentName(new URL(url).pathname.split("/").filter(Boolean).pop() ?? null);
           setContents({ contents: JSON.stringify(json, null, 2) });
           onClose();
         })
@@ -36,6 +39,7 @@ export const ImportModal = ({ opened, onClose }: ModalProps) => {
       setFormat(format as FileFormat);
 
       file.text().then(text => {
+        setDocumentName(file.name);
         setContents({ contents: text });
         setFile(null);
         setURL("");

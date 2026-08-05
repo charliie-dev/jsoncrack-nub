@@ -56,6 +56,7 @@ export const GraphView = ({ isWidget = false }: GraphProps) => {
   const darkmodeEnabled = useConfig(state => state.darkmodeEnabled);
   const json = useJson(state => state.json);
   const contents = useFile(state => state.contents);
+  const documentName = useFile(state => state.documentName);
   const setVisible = useModal(state => state.setVisible);
   /**
    * Show the picker only when the canvas has nothing on it *and* the editor is empty.
@@ -109,6 +110,7 @@ export const GraphView = ({ isWidget = false }: GraphProps) => {
           ref={jsonCrackRef}
           key={[direction, gesturesEnabled, rulersEnabled].join("-")}
           json={json}
+          rootLabel={documentName ?? undefined}
           theme={darkmodeEnabled ? "dark" : "light"}
           layoutDirection={direction}
           showControls={false}

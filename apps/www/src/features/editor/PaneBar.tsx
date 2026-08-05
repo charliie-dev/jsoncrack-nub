@@ -194,7 +194,7 @@ const useLampState = (): LampState => {
 };
 
 export const PaneBar = () => {
-  const data = useFile(state => state.fileData);
+  const documentName = useFile(state => state.documentName);
   const toggleLiveTransform = useConfig(state => state.toggleLiveTransform);
   const liveTransformEnabled = useConfig(state => state.liveTransformEnabled);
   const error = useFile(state => state.error);
@@ -214,8 +214,8 @@ export const PaneBar = () => {
   };
 
   React.useEffect(() => {
-    if (data?.name) window.document.title = `${data.name} | JSON Crack`;
-  }, [data]);
+    window.document.title = documentName ? `${documentName} | JSON Crack` : "JSON Crack";
+  }, [documentName]);
 
   return (
     <StyledPaneBar>
