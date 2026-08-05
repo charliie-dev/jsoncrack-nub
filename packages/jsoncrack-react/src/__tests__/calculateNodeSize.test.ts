@@ -3,13 +3,13 @@ import { NODE_DIMENSIONS } from "../nodeDimensions";
 import { calculateNodeSize } from "../utils/calculateNodeSize";
 
 describe("NODE_DIMENSIONS", () => {
-  it("keeps the existing row and parent heights", () => {
-    expect(NODE_DIMENSIONS.ROW_HEIGHT).toBe(30);
+  it("keeps the parent height and uses the tightened row height", () => {
+    expect(NODE_DIMENSIONS.ROW_HEIGHT).toBe(26);
     expect(NODE_DIMENSIONS.PARENT_HEIGHT).toBe(36);
   });
 
   it("declares a header height", () => {
-    expect(NODE_DIMENSIONS.HEADER_HEIGHT).toBe(36);
+    expect(NODE_DIMENSIONS.HEADER_HEIGHT).toBe(30);
   });
 });
 

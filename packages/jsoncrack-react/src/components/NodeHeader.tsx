@@ -1,6 +1,5 @@
 import React from "react";
 import { latte, mocha } from "../catppuccin";
-import { NODE_DIMENSIONS } from "../nodeDimensions";
 import type { CanvasThemeMode } from "../types";
 import { ROOT_ACCENT, accentForKey, mixHex } from "../utils/accentForKey";
 import styles from "./Node.module.css";
@@ -42,7 +41,6 @@ export const NodeHeader = ({ label, accentKey, theme, width }: NodeHeaderProps) 
       className={styles.header}
       style={{
         width,
-        height: NODE_DIMENSIONS.HEADER_HEIGHT,
         color: text,
         background,
       }}

@@ -8,9 +8,9 @@
  */
 export const NODE_DIMENSIONS = {
   /** Height of one key/value row inside a node. */
-  ROW_HEIGHT: 30,
+  ROW_HEIGHT: 26,
   /** Height of a node whose body is a single scalar value. */
   PARENT_HEIGHT: 36,
   /** Height of the coloured header strip above every node's body. */
-  HEADER_HEIGHT: 36,
+  HEADER_HEIGHT: 30,
 } as const;

@@ -27,8 +27,9 @@
   align-items: center;
   box-sizing: border-box;
   flex-shrink: 0;
+  height: var(--node-header-height);
   padding: 0 10px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   text-align: left;
   white-space: nowrap;
@@ -45,9 +46,11 @@
 }
 
 .row {
-  padding: 3px 10px;
-  height: 30px;
-  line-height: 24px;
+  /* Height comes from NODE_DIMENSIONS via buildCanvasStyle: the layout is measured against
+     that number, so a second copy here would silently overflow the node. */
+  padding: 2px 10px;
+  height: var(--node-row-height);
+  line-height: calc(var(--node-row-height) - 4px);
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;

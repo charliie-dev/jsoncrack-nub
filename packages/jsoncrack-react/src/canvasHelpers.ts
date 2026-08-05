@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import type { ViewPort } from "react-zoomable-ui";
 import styles from "./JSONCrackStyles.module.css";
+import { NODE_DIMENSIONS } from "./nodeDimensions";
 import { parseGraph } from "./parser";
 import { themes } from "./theme";
 import type { CanvasThemeMode, GraphData } from "./types";
@@ -55,6 +56,10 @@ export const buildCanvasStyle = (
     "--node-child-count": themeTokens.NODE_COLORS.CHILD_COUNT,
     "--node-divider": themeTokens.NODE_COLORS.DIVIDER,
     "--node-header-text": themeTokens.NODE_COLORS.HEADER_TEXT,
+    // Geometry, not colour, but it belongs here for the same reason: the stylesheet and
+    // the layout measurement have to agree on one number.
+    "--node-row-height": `${NODE_DIMENSIONS.ROW_HEIGHT}px`,
+    "--node-header-height": `${NODE_DIMENSIONS.HEADER_HEIGHT}px`,
     "--node-base": themeTokens.BASE,
     "--text-positive": themeTokens.TEXT_POSITIVE,
     "--background-modifier-accent": themeTokens.BACKGROUND_MODIFIER_ACCENT,
